@@ -119,7 +119,7 @@ public abstract class ReaderMappingJSON extends ReaderMapping {
 		}
 	}
 
-	// Matrix Reader Mapping
+	// Frame Reader Mapping
 	public static class FrameReaderMapping extends ReaderMappingJSON {
 
 		private FrameBlock sampleFrame;
