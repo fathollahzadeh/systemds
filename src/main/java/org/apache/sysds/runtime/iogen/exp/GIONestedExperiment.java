@@ -37,7 +37,7 @@ public class GIONestedExperiment {
 		double generateTime = (System.nanoTime() - tmpTime) / 1000000000.0;
 
 		tmpTime = System.nanoTime();
-		FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, sampleSchema, -1, ncols);
+		FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, gr.getProperties().getSchema(), -1, gr.getProperties().getSchema().length);
 		double readTime = (System.nanoTime() - tmpTime) / 1000000000.0;
 
 		//dataset,data_nrows,data_ncols,col_index_percent,generate_time,read_time
