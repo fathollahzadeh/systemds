@@ -16,19 +16,32 @@ public class GIONestedExperiment {
 		String schemaFileName = args[4];
 		String dataFileName = args[5];
 
+		Float percent = Float.parseFloat(args[6]);
+		String datasetName = args[7];
+		String LOG_HOME =args[8];
+
 		if(delimiter.equals("\\t"))
 			delimiter = "\t";
 
+		System.out.println("sampleRawFileName="+sampleRawFileName);
 		Util util = new Util();
 		Types.ValueType[] sampleSchema = util.getSchema(schemaFileName);
 		int ncols = sampleSchema.length;
 
-		FrameBlock sampleFrame = new FrameBlock(sampleSchema,
-			util.loadFrameData(sampleFrameFileName, sampleNRows, ncols, delimiter));
+		FrameBlock sampleFrame = new FrameBlock(sampleSchema, util.loadFrameData(sampleFrameFileName, sampleNRows, ncols, delimiter));
 
+		double tmpTime = System.nanoTime();
 		String sampleRaw = util.readEntireTextFile(sampleRawFileName);
 		GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame);
 		FrameReader fr = gr.getReader();
+		double generateTime = (System.nanoTime() - tmpTime) / 1000000000.0;
+
+		tmpTime = System.nanoTime();
 		FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, sampleSchema, -1, ncols);
+		double readTime = (System.nanoTime() - tmpTime) / 1000000000.0;
+
+		//dataset,data_nrows,data_ncols,col_index_percent,generate_time,read_time
+		String log= datasetName+","+ frameBlock.getNumRows()+","+ ncols+","+percent+","+generateTime+","+readTime;
+		util.addLog(LOG_HOME, log);
 	}
 }

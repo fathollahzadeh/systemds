@@ -43,7 +43,7 @@ public class frame {
 				read_time = 0;
 
 				for(int r = 0; r < runs; r++) {
-					processBuilder.command("/home/sfathollahzadeh/Documents/GitHub/systemds/src/test/java/org/apache/sysds/test/functions/iogen/experiment/runch.sh");
+					processBuilder.command("/home/sfathollahzadeh/Documents/GitHub/systemds/src/test/java/org/apache/sysds/test/functions/iogen/experiment/runGIONestedExp.sh");
 					Process process = processBuilder.start();
 					String dataFileName = DATA_HOME + "/data/" + d + fileName+".raw";
 					int clen = ncols;
