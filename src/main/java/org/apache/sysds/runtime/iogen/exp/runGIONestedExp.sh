@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-#echo 3 > /proc/sys/vm/drop_caches && sync
-#sleep 200
 
 # Set properties
 LOG4JPROP='/home/sfathollahzadeh/Documents/GitHub/systemds/scripts/perftest/conf/log4j-off.properties'
-root_data_path="/media/sfathollahzadeh/Windows/saeedData/NestedDatasets"
+root_data_path="/home/sfathollahzadeh/Dataset"
 jar_file_path="/home/sfathollahzadeh/Documents/GitHub/systemds/target/SystemDS.jar"
 lib_files_path="/home/sfathollahzadeh/Documents/GitHub/systemds/target/lib/*"
-home_log="/media/sfathollahzadeh/Windows/saeedData/NestedDatasets/LOG"
+home_log="/home/sfathollahzadeh/Dataset/LOG"
 sep="_"
 declare -a  datasets=("imdb")
 
@@ -25,7 +23,7 @@ BASE_SCRIPT="java\
 for d in "${datasets[@]}"; do
   ./resultPath.sh $home_log $d
   data_file_name="$root_data_path/$d/$d.data"
-  for sr in 150 200
+  for sr in 100
     do
       for p in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
        do
@@ -47,10 +45,9 @@ for d in "${datasets[@]}"; do
                 $d\
                 $home_log/benchmark/GIONestedExperiment/$d.csv
         "
-        #echo "++++++++++++++++++++ $p"
         #echo $SCRIPT
-        #echo $SCRIPT
-        #echo 3 > /proc/sys/vm/drop_caches && sync
+        echo 3 > /proc/sys/vm/drop_caches && sync
+        sleep 20
         time $SCRIPT
       done
     done
