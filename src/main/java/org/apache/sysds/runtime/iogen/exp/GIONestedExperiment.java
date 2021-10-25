@@ -40,8 +40,8 @@ public class GIONestedExperiment {
 		FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, gr.getProperties().getSchema(), -1, gr.getProperties().getSchema().length);
 		double readTime = (System.nanoTime() - tmpTime) / 1000000000.0;
 
-		//dataset,data_nrows,data_ncols,col_index_percent,generate_time,read_time
-		String log= datasetName+","+ frameBlock.getNumRows()+","+ ncols+","+percent+","+generateTime+","+readTime;
+		//dataset,data_nrows,data_ncols,col_index_percent,sample_nrows,generate_time,read_time
+		String log= datasetName+","+ frameBlock.getNumRows()+","+ ncols+","+percent+","+ sampleNRows+","+ generateTime+","+readTime;
 		util.addLog(LOG_HOME, log);
 	}
 }
