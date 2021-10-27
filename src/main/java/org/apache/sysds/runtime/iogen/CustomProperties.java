@@ -38,6 +38,7 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 	private int firstRowIndex;
 	private String[] colKeys;
 	private Types.ValueType[] schema;
+	private String[] colPrefixes;
 
 	protected enum GRPattern {
 		Regular, Irregular;
@@ -105,7 +106,14 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 
 	public CustomProperties(String[] colKeys) {
 		this.colKeys = colKeys;
+	}
 
+	// Custom Formats
+
+	public CustomProperties(String[] colPrefixes, GRPattern rowPattern, GRPattern colPattern) {
+		this.colPrefixes = colPrefixes;
+		this.rowPattern = rowPattern;
+		this.colPattern = colPattern;
 	}
 
 	public String getDelim() {
@@ -154,5 +162,13 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 
 	public Types.ValueType[] getSchema() {
 		return schema;
+	}
+
+	public String[] getColPrefixes() {
+		return colPrefixes;
+	}
+
+	public void setColPrefixes(String[] colPrefixes) {
+		this.colPrefixes = colPrefixes;
 	}
 }

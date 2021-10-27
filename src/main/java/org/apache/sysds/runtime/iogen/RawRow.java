@@ -555,4 +555,16 @@ public class RawRow {
 	public boolean isMarked() {
 		return !reserved.isEmpty();
 	}
+
+	public String getValuePrefix(int position) {
+		StringBuilder sb = new StringBuilder("");
+		int index = position -1;
+		while(index >= 0 && !reserved.get(index)) {
+			sb.append(raw.charAt(index));
+			index--;
+		}
+		if(index == -1)
+			sb.append("\n");
+		return sb.reverse().toString();
+	}
 }
