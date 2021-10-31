@@ -19,8 +19,6 @@
 
 package org.apache.sysds.runtime.iogen;
 
-import com.google.gson.Gson;
-import org.antlr.v4.codegen.model.TestSetInline;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.runtime.io.IOUtilFunctions;
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
@@ -616,7 +614,7 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 				if(mapRow[r][c] != -1) {
 					String delim = sampleRawRows.get(mapRow[r][c]).getValuePrefix(mapCol[r][c]);
 					if(colPrefixes[c] != null && !colPrefixes[c].equals(delim))
-						throw new RuntimeException("There is a wrong mapping in col values!");
+						throw new RuntimeException("There is a Wrong Mapping in Col Values!");
 					colPrefixes[c] = delim;
 				}
 			}
@@ -624,10 +622,14 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 
 		// Verify
 		boolean verify = true;
-		for(String c : colPrefixes)
+		int ii=0;
+		for(String c : colPrefixes) {
 			if(c == null) {
 				verify = false;
+				break;
 			}
+			ii++;
+		}
 		if(verify) {
 			ffp = new CustomProperties(colPrefixes, CustomProperties.GRPattern.Irregular, CustomProperties.GRPattern.Irregular);
 		}

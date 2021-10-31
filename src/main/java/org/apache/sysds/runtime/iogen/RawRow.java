@@ -563,8 +563,8 @@ public class RawRow {
 			sb.append(raw.charAt(index));
 			index--;
 		}
-		if(index == -1)
-			sb.append("\n");
+//		if(index == -1)
+//			sb.append("\n");
 		return sb.reverse().toString();
 	}
 }

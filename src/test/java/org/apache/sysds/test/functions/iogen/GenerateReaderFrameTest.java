@@ -172,8 +172,12 @@ public abstract class GenerateReaderFrameTest extends AutomatedTestBase {
 			writeRawString(sampleRaw, dataPath);
 			GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame);
 
+			//------------
+			dataPath = "/home/sfathollahzadeh/Downloads/newdataset/AMiner-Author.txt";
+			int rr = 1712433;
+
 			FrameReader fr= gr.getReader();
-			FrameBlock grFrame = fr.readFrameFromHDFS(dataPath,schema,names,data.length, clen);
+			FrameBlock grFrame = fr.readFrameFromHDFS(dataPath,schema,names,rr, clen);
 		}
 		catch(Exception exception) {
 			exception.printStackTrace();
