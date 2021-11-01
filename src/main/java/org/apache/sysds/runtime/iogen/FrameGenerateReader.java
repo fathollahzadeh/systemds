@@ -427,11 +427,7 @@ public abstract class FrameGenerateReader extends FrameReader {
 			LongWritable key = new LongWritable();
 			Text value = new Text();
 			if(reader.next(key, value)){
-				String vs = value.toString();
-				if(vs.startsWith("#*"))
-					return vs.replace(";","");
-				else
-					return vs;
+				return value.toString();
 			}
 			else
 				return null;
