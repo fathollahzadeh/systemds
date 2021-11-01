@@ -19,32 +19,37 @@
 
 package org.apache.sysds.test.functions.iogen;
 
+import org.apache.sysds.api.DMLScript;
 import org.apache.sysds.common.Types;
+import org.apache.sysds.conf.CompilerConfig;
+import org.apache.sysds.runtime.io.FrameReader;
+import org.apache.sysds.runtime.iogen.GenerateReader;
+import org.apache.sysds.runtime.matrix.data.FrameBlock;
+import org.apache.sysds.test.AutomatedTestBase;
+import org.apache.sysds.test.TestConfiguration;
 import org.junit.Test;
 
-public class FrameGenerateReaderCustomTest extends GenerateReaderFrameTest {
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+
+public class FrameGenerateReaderCustomTest extends AutomatedTestBase {
 
 	private final static String TEST_NAME = "FrameGenerateReaderCustomTest";
 
-	@Override
-	protected String getTestName() {
-		return TEST_NAME;
-	}
+	private final static String TEST_DIR = "functions/iogen/";
+	private final static String TEST_CLASS_DIR = TEST_DIR + FrameGenerateReaderCustomTest.class.getSimpleName() + "/";
+	private String sampleRaw;
+	private String[][] data;
+	private String[] names;
+	private Types.ValueType[] schema;
 
-	private void extractSampleRawCSV(String separator) {
-		int nrows = data.length;
-		int ncols = data[0].length;
-		StringBuilder sb = new StringBuilder();
-		for(int r = 0; r < nrows; r++) {
-			for(int c = 0; c < ncols; c++) {
-				sb.append(data[r][c]);
-				if(c != ncols - 1)
-					sb.append(separator);
-			}
-			if(r != nrows - 1)
-				sb.append("\n");
-		}
-		sampleRaw = sb.toString();
+
+	@Override public void setUp() {
+		addTestConfiguration(TEST_NAME, new TestConfiguration(TEST_CLASS_DIR, TEST_NAME, new String[] {"Rout"}));
 	}
 
 	@Test
@@ -79,36 +84,36 @@ public class FrameGenerateReaderCustomTest extends GenerateReaderFrameTest {
 					"#% 1117023\n" +
 					"#% 1250184\n" +
 					"#! This paper addresses several key issues \n"+
-			"#index 1083734\n" +
-			"#* ArnetMiner: extraction and mining of academic social networks\n" +
-			"#@ Jie Tang;Jing Zhang;Limin Yao;Juanzi Li;Li Zhang;Zhong Su\n" + //6: 2-7
-			"#o Tsinghua University, Beijing, China;Tsinghua University, Beijing, China;Tsinghua University, Beijing, China;Tsinghua University, Beijing, China;IBM, Beijing, China;IBM, Beijing, China\n" +
-			"#t 2008\n" +
-			"#c Proceedings of the 14th ACM SIGKDD international conference on Knowledge discovery and data mining\n" +
-			"#% 197394\n" +
-			"#% 220708\n" +
-			"#% 280819\n" +
-			"#% 387427\n" +
-			"#% 464434\n" +
-			"#% 643007\n" +
-			"#% 722904\n" +
-			"#% 760866\n" +
-			"#% 766409\n" +
-			"#% 769881\n" +
-			"#% 769906\n" +
-			"#% 788094\n" +
-			"#% 805885\n" +
-			"#% 809459\n" +
-			"#% 817555\n" +
-			"#% 874510\n" +
-			"#% 879570\n" +
-			"#% 879587\n" +
-			"#% 939393\n" +
-			"#% 956501\n" +
-			"#% 989621\n" +
-			"#% 1117023\n" +
-			"#% 1250184\n" +
-			"#! This paper addresses several key issues ";
+					"#index 1083734\n" +
+					"#* ArnetMiner: extraction and mining of academic social networks\n" +
+					"#@ Jie Tang;Jing Zhang;Limin Yao;Juanzi Li;Li Zhang;Zhong Su\n" + //6: 2-7
+					"#o Tsinghua University, Beijing, China;Tsinghua University, Beijing, China;Tsinghua University, Beijing, China;Tsinghua University, Beijing, China;IBM, Beijing, China;IBM, Beijing, China\n" +
+					"#t 2008\n" +
+					"#c Proceedings of the 14th ACM SIGKDD international conference on Knowledge discovery and data mining\n" +
+					"#% 197394\n" +
+					"#% 220708\n" +
+					"#% 280819\n" +
+					"#% 387427\n" +
+					"#% 464434\n" +
+					"#% 643007\n" +
+					"#% 722904\n" +
+					"#% 760866\n" +
+					"#% 766409\n" +
+					"#% 769881\n" +
+					"#% 769906\n" +
+					"#% 788094\n" +
+					"#% 805885\n" +
+					"#% 809459\n" +
+					"#% 817555\n" +
+					"#% 874510\n" +
+					"#% 879570\n" +
+					"#% 879587\n" +
+					"#% 939393\n" +
+					"#% 956501\n" +
+					"#% 989621\n" +
+					"#% 1117023\n" +
+					"#% 1250184\n" +
+					"#! This paper addresses several key issues ";
 		schema = new Types.ValueType[40];
 		schema[0] = Types.ValueType.INT64;
 		schema[1] = Types.ValueType.STRING;
@@ -234,7 +239,6 @@ public class FrameGenerateReaderCustomTest extends GenerateReaderFrameTest {
 			"#% 1117023\n" +
 			"#% 1250184\n" +
 			"#! This paper addresses several key issues \n"+
-			//---------------------------------------------
 			"#index 2222222\n" +
 			"#* ArnetMiner: extraction and mining of academic social networks\n" +
 			"#@ Jie Tang;Jing Zhang;Limin Yao;Juanzi Li;Li Zhang;Zhong Su\n" + //6: 2-7
@@ -390,9 +394,6 @@ public class FrameGenerateReaderCustomTest extends GenerateReaderFrameTest {
 		data[1][38] = null;//"1250184";
 		data[1][39] = "This paper addresses several key issues ";
 
-//		for(int i=0; i<data[0].length; i++)
-//			data[1][i] = data[0][i];
-
 		names = new String[data[0].length];
 		for(int i = 0; i < names.length; i++)
 			names[i] = "C_" + i;
@@ -412,15 +413,15 @@ public class FrameGenerateReaderCustomTest extends GenerateReaderFrameTest {
 					"#pi 76.3254\n" +
 					"#upi 73.7573\n" +
 					"#t 31;32;33;34;35;36;37"+
-			"#index 1488277\n" +
-			"#n 11;12;13;14;15;16;17\n" +
-			"#a 21;22;23;24;25;26;27\n" +
-			"#pc 70\n" +
-			"#cn 370\n" +
-			"#hi 9\n" +
-			"#pi 76.3254\n" +
-			"#upi 73.7573\n" +
-			"#t 31;32;33;34;35;36;37";
+					"#index 1488277\n" +
+					"#n 11;12;13;14;15;16;17\n" +
+					"#a 21;22;23;24;25;26;27\n" +
+					"#pc 70\n" +
+					"#cn 370\n" +
+					"#hi 9\n" +
+					"#pi 76.3254\n" +
+					"#upi 73.7573\n" +
+					"#t 31;32;33;34;35;36;37";
 		schema = new Types.ValueType[27];
 		schema[0] = Types.ValueType.INT64;
 
@@ -495,19 +496,49 @@ public class FrameGenerateReaderCustomTest extends GenerateReaderFrameTest {
 		for(int i = 0; i < names.length; i++)
 			names[i] = "C_" + i;
 
-		String[] naStrings = {"NULL", "inf", "NaN"};
 		runGenerateReaderTest();
 	}
 
-	//#index ---- index id of this author
-	//#n ---- name  (separated by semicolons)
-	//#a ---- affiliations  (separated by semicolons)
-	//#pc ---- the count of published papers of this author
-	//#cn ---- the total number of citations of this author
-	//#hi ---- the H-index of this author
-	//#pi ---- the P-index with equal A-index of this author
-	//#upi ---- the P-index with unequal A-index of this author
-	//#t ---- research interests of this author  (separated by semicolons)
+	protected void runGenerateReaderTest() {
 
+		Types.ExecMode oldPlatform = rtplatform;
+		rtplatform = Types.ExecMode.SINGLE_NODE;
+
+		boolean sparkConfigOld = DMLScript.USE_LOCAL_SPARK_CONFIG;
+		boolean oldpar = CompilerConfig.FLAG_PARREADWRITE_TEXT;
+
+		try {
+			CompilerConfig.FLAG_PARREADWRITE_TEXT = false;
+
+			TestConfiguration config = getTestConfiguration(TEST_NAME);
+			loadTestConfiguration(config);
+
+			FrameBlock sampleFrame = new FrameBlock(schema, names, data);
+
+			String HOME = SCRIPT_DIR + TEST_DIR;
+			String dataPath = HOME + "frame_data.raw";
+			int clen = data[0].length;
+			writeRawString(sampleRaw, dataPath);
+			GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame);
+
+			File file = new File(dataPath);
+			InputStream is = new FileInputStream(file);
+			FrameReader fr= gr.getReader();
+			FrameBlock grFrame = fr.readFrameFromInputStream(is,schema,names,data.length, clen);
+		}
+		catch(Exception exception) {
+			exception.printStackTrace();
+		}
+		finally {
+			rtplatform = oldPlatform;
+			CompilerConfig.FLAG_PARREADWRITE_TEXT = oldpar;
+			DMLScript.USE_LOCAL_SPARK_CONFIG = sparkConfigOld;
+		}
+	}
+	private static void writeRawString(String raw, String fileName) throws IOException {
+		BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
+		writer.write(raw);
+		writer.close();
+	}
 
 }

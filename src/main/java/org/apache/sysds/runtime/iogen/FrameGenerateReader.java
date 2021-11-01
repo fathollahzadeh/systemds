@@ -19,7 +19,6 @@
 
 package org.apache.sysds.runtime.iogen;
 
-import com.google.gson.Gson;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -41,7 +40,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 public abstract class FrameGenerateReader extends FrameReader {
@@ -136,14 +134,10 @@ public abstract class FrameGenerateReader extends FrameReader {
 
 		TextInputFormat informat = new TextInputFormat();
 		informat.configure(job);
-		InputSplit[] splits = informat.getSplits(job, 1);
+		InputSplit[] splits = informat.getSplits(job, 0);
 		splits = IOUtilFunctions.sortInputSplits(splits);
-		long sum=0;
-		for(int i = 0, rpos = 0; i < splits.length; i++) {
+		for(int i = 0, rpos = 0; i < splits.length; i++)
 			rpos = readFrameFromInputSplit(splits[i], informat, job, dest, schema, names, rlen, clen, rpos, i == 0);
-			sum+=rpos;
-		}
-		//System.out.println("ROW= "+ sum);
 	}
 
 	protected abstract int readFrameFromInputSplit(InputSplit split, InputFormat<LongWritable, Text> informat,
@@ -327,13 +321,14 @@ public abstract class FrameGenerateReader extends FrameReader {
 			int nextIndex1 = 0;
 			String strValue = null;
 			int index1, index2, currUniqueIndex;
-			try {
-				while(row< rlen) {
-					strValue = strValue==null ? getNewLineOfData(reader) : strValue;
 
+			try {
+				while(true) {
+					strValue = strValue==null ? getNewLineOfData(reader) : strValue;
 					if(strValue == null)
 						break;
 					currUniqueIndex = 0;
+					int lastCol = col;
 					do {
 						index1 = strValue.indexOf(prefixes[uniquePrefixIndex]);
 						if(index1 ==-1){
@@ -348,8 +343,9 @@ public abstract class FrameGenerateReader extends FrameReader {
 
 					// Skip the row if we don't have any match on delimiters
 					if(index1 == -1){
-						if(col>0)
+						if(col>0 && lastCol !=0) {
 							row++;
+						}
 						col = 0;
 						uniquePrefixIndex = 0;
 						strValue = null;
