@@ -21,6 +21,7 @@ package org.apache.sysds.runtime.iogen;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.sysds.common.Types;
 import org.apache.sysds.runtime.io.FileFormatProperties;
 
 import java.io.Serializable;
@@ -35,6 +36,9 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 	private HashSet<String> naStrings;
 	private int firstColIndex;
 	private int firstRowIndex;
+	private String[] colKeys;
+	private Types.ValueType[] schema;
+	private String[] colPrefixes;
 
 	protected enum GRPattern {
 		Regular, Irregular;
@@ -93,6 +97,25 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 		this.firstRowIndex = firstRowIndex;
 	}
 
+	// Nested format
+	public CustomProperties(String[] colKeys, Types.ValueType[] schema) {
+		this.colKeys = colKeys;
+		this.schema = schema;
+		this.rowPattern = GRPattern.Regular;
+	}
+
+	public CustomProperties(String[] colKeys) {
+		this.colKeys = colKeys;
+	}
+
+	// Custom Formats
+
+	public CustomProperties(String[] colPrefixes, GRPattern rowPattern, GRPattern colPattern) {
+		this.colPrefixes = colPrefixes;
+		this.rowPattern = rowPattern;
+		this.colPattern = colPattern;
+	}
+
 	public String getDelim() {
 		return delim;
 	}
@@ -131,5 +154,21 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 
 	public void setFirstRowIndex(int firstRowIndex) {
 		this.firstRowIndex = firstRowIndex;
+	}
+
+	public String[] getColKeys() {
+		return colKeys;
+	}
+
+	public Types.ValueType[] getSchema() {
+		return schema;
+	}
+
+	public String[] getColPrefixes() {
+		return colPrefixes;
+	}
+
+	public void setColPrefixes(String[] colPrefixes) {
+		this.colPrefixes = colPrefixes;
 	}
 }
