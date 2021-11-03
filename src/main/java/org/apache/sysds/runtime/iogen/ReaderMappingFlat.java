@@ -130,8 +130,7 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 		}
 
 		// Convert: convert each value of a sample matrix to NumberTrimFormat
-		@Override
-		protected ValueTrimFormat[][] convertSampleTOValueTrimFormat() {
+		@Override protected ValueTrimFormat[][] convertSampleTOValueTrimFormat() {
 			ValueTrimFormat[][] result = new ValueTrimFormat[nrows][ncols];
 			for(int r = 0; r < nrows; r++)
 				for(int c = 0; c < ncols; c++) {
@@ -140,8 +139,7 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 			return result;
 		}
 
-		@Override
-		protected boolean isSchemaNumeric() {
+		@Override protected boolean isSchemaNumeric() {
 			return true;
 		}
 
@@ -165,8 +163,7 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 		}
 
 		// Convert: convert each value of a sample Frame to ValueTrimFormat(Number, String, and Boolean)
-		@Override
-		protected ValueTrimFormat[][] convertSampleTOValueTrimFormat() {
+		@Override protected ValueTrimFormat[][] convertSampleTOValueTrimFormat() {
 			ValueTrimFormat[][] result = new ValueTrimFormat[nrows][ncols];
 			for(int r = 0; r < nrows; r++)
 				for(int c = 0; c < ncols; c++) {
@@ -175,8 +172,7 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 			return result;
 		}
 
-		@Override
-		protected boolean isSchemaNumeric() {
+		@Override protected boolean isSchemaNumeric() {
 			boolean result = true;
 			for(Types.ValueType vt : schema)
 				result &= vt.isNumeric();
@@ -348,8 +344,7 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 		return rcvMapped;
 	}
 
-	@Override
-	public CustomProperties getFormatProperties() throws Exception {
+	@Override public CustomProperties getFormatProperties() throws Exception {
 		CustomProperties ffp;
 		if(isRowRegular()) {
 			ffp = getFileFormatPropertiesOfRRCRMapping();
@@ -358,7 +353,10 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 			}
 		}
 		else {
-			ffp = getFileFormatPropertiesOfRIMapping();
+			ffp = getFileFormatPropertiesOfRICRMapping();
+			if(ffp == null) {
+				ffp = getFileFormatPropertiesOfRICIMapping();
+			}
 		}
 		return ffp;
 	}
@@ -475,8 +473,8 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 			int start = _pos;
 
 			//find start (skip over leading delimiters)
-			while(start != -1 && start < len && _del
-				.equals(_string.substring(start, Math.min(start + _del.length(), _string.length())))) {
+			while(start != -1 && start < len && _del.equals(
+				_string.substring(start, Math.min(start + _del.length(), _string.length())))) {
 				start += _del.length();
 				_count++;
 			}
@@ -509,7 +507,7 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 		}
 	}
 
-	private CustomProperties getFileFormatPropertiesOfRIMapping() {
+	private CustomProperties getFileFormatPropertiesOfRICRMapping() {
 
 		int[] rowIndex = {0, 1, 0, 1};
 		int[] colIndex = {0, 1, 1, 0};
@@ -602,6 +600,40 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 			else
 				return null;
 		}
+	}
+
+	private CustomProperties getFileFormatPropertiesOfRICIMapping() {
+		CustomProperties ffp = null;
+
+		String[] colPrefixes = new String[ncols];
+		for(int c = 0; c < ncols; c++)
+			colPrefixes[c] = null;
+
+		for(int r = 0; r < nrows; r++) {
+			for(int c = 0; c < ncols; c++) {
+				if(mapRow[r][c] != -1) {
+					String delim = sampleRawRows.get(mapRow[r][c]).getValuePrefix(mapCol[r][c]);
+					if(colPrefixes[c] != null && !colPrefixes[c].equals(delim))
+						throw new RuntimeException("There is a Wrong Mapping in Col Values!");
+					colPrefixes[c] = delim;
+				}
+			}
+		}
+
+		// Verify
+		boolean verify = true;
+		int ii=0;
+		for(String c : colPrefixes) {
+			if(c == null) {
+				verify = false;
+				break;
+			}
+			ii++;
+		}
+		if(verify) {
+			ffp = new CustomProperties(colPrefixes, CustomProperties.GRPattern.Irregular, CustomProperties.GRPattern.Irregular);
+		}
+		return ffp;
 	}
 
 	public CustomProperties getFileFormatPropertiesOfRRCIMapping() {

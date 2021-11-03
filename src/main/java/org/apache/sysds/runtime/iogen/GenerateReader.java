@@ -142,7 +142,12 @@ public abstract class GenerateReader {
 					}
 				}
 				else {
-					frameReader = new FrameGenerateReader.FrameReaderRowIrregular(properties);
+					if(properties.getColPattern().equals(CustomProperties.GRPattern.Regular)) {
+						frameReader = new FrameGenerateReader.FrameReaderRowIrregularColRegular(properties);
+					}
+					else {
+						frameReader = new FrameGenerateReader.FrameReaderRowIrregularColIrregular(properties);
+					}
 				}
 				return frameReader;
 			}
