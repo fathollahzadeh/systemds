@@ -1,23 +1,21 @@
 #!/usr/bin/env bash
 
 # Set properties
-LOG4JPROP='/home/sfathollahzadeh/Documents/GitHub/systemds/scripts/perftest/conf/log4j-off.properties'
-root_data_path="/home/sfathollahzadeh/Dataset"
+LOG4JPROP='/home/sfathollahzadeh/Documents/GitHub/systemds/scripts/perftest/conf/log4j.properties'
+root_data_path="/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets"
 jar_file_path="/home/sfathollahzadeh/Documents/GitHub/systemds/target/SystemDS.jar"
 lib_files_path="/home/sfathollahzadeh/Documents/GitHub/systemds/target/lib/*"
-home_log="/home/sfathollahzadeh/Dataset/LOG"
+home_log="/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/LOG"
 sep="_"
-declare -a  datasets=("imdb")
+declare -a  datasets=("aminer")
 
 BASE_SCRIPT="java\
             -Dlog4j.configuration=file:$LOG4JPROP\
-            -XX:-UseGCOverheadLimit\
-            -XX:+UseConcMarkSweepGC\
             -Xms1g\
-            -Xmx14g\
+            -Xmx15g\
             -cp\
              $jar_file_path:$lib_files_path\
-             org.apache.sysds.runtime.iogen.exp.GIONestedExperiment\
+             org.apache.sysds.runtime.iogen.exp.GIONestedExperimentHDFS\
              "
 
 for d in "${datasets[@]}"; do
@@ -30,10 +28,10 @@ for d in "${datasets[@]}"; do
         schema_file_name="$root_data_path/$d/$d$sep$p.schema"
         sample_raw_fileName="$root_data_path/$d/sample_$sr$sep$p.raw"
         sample_frame_file_name="$root_data_path/$d/sample_$sr$sep$p.frame"
-        delimiter=""
-        if [[ "$d" == "imdb" ]]; then
-          delimiter="\t";
-        fi
+        delimiter="\t"
+#        if [[ "$d" == "imdb" ]]; then
+#          delimiter="\t";
+#        fi
         SCRIPT="$BASE_SCRIPT\
                 $sample_raw_fileName\
                 $sample_frame_file_name\

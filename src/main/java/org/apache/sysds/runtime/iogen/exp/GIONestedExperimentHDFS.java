@@ -5,7 +5,10 @@ import org.apache.sysds.runtime.io.FrameReader;
 import org.apache.sysds.runtime.iogen.GenerateReader;
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
 
-public class GIONestedExperiment {
+import java.util.ArrayList;
+import java.util.HashSet;
+
+public class GIONestedExperimentHDFS {
 
 	public static void main(String[] args) throws Exception {
 
@@ -23,12 +26,42 @@ public class GIONestedExperiment {
 		if(delimiter.equals("\\t"))
 			delimiter = "\t";
 
-		System.out.println("sampleRawFileName="+sampleRawFileName);
 		Util util = new Util();
 		Types.ValueType[] sampleSchema = util.getSchema(schemaFileName);
 		int ncols = sampleSchema.length;
 
-		FrameBlock sampleFrame = new FrameBlock(sampleSchema, util.loadFrameData(sampleFrameFileName, sampleNRows, ncols, delimiter));
+		ArrayList<Types.ValueType> newSampleSchema = new ArrayList<>();
+		ArrayList<ArrayList<String>> newSampleFrame = new ArrayList<>();
+
+		String[][] sampleFrameStrings =  util.loadFrameData(sampleFrameFileName, sampleNRows, ncols, delimiter);
+
+		for(int c = 0; c < sampleFrameStrings[0].length; c++) {
+			HashSet<String> valueSet = new HashSet<>();
+			for(int r=0; r<sampleFrameStrings.length;r++)
+				valueSet.add(sampleFrameStrings[r][c]);
+			if(valueSet.size()>3){
+				ArrayList<String> tempList = new ArrayList<>();
+				for(int r=0; r<sampleFrameStrings.length;r++) {
+					tempList.add(sampleFrameStrings[r][c]);
+				}
+				newSampleFrame.add(tempList);
+				newSampleSchema.add(sampleSchema[c]);
+			}
+		}
+
+		sampleFrameStrings = new String[newSampleFrame.get(0).size()][newSampleFrame.size()];
+
+		for(int row=0; row<sampleFrameStrings.length; row++){
+			for(int col=0; col<sampleFrameStrings[0].length; col++){
+				sampleFrameStrings[row][col] = newSampleFrame.get(col).get(row);
+			}
+		}
+
+		sampleSchema = new Types.ValueType[newSampleSchema.size()];
+		for(int i=0; i< newSampleSchema.size();i++)
+			sampleSchema[i] = newSampleSchema.get(i);
+
+		FrameBlock sampleFrame = new FrameBlock(sampleSchema, sampleFrameStrings);
 
 		double tmpTime = System.nanoTime();
 		String sampleRaw = util.readEntireTextFile(sampleRawFileName);
@@ -40,7 +73,6 @@ public class GIONestedExperiment {
 		FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, gr.getProperties().getSchema(), -1, gr.getProperties().getSchema().length);
 		double readTime = (System.nanoTime() - tmpTime) / 1000000000.0;
 
-		//dataset,data_nrows,data_ncols,col_index_percent,sample_nrows,generate_time,read_time
 		String log= datasetName+","+ frameBlock.getNumRows()+","+ ncols+","+percent+","+ sampleNRows+","+ generateTime+","+readTime;
 		util.addLog(LOG_HOME, log);
 	}
