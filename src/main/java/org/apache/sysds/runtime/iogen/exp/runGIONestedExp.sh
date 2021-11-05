@@ -7,9 +7,9 @@ jar_file_path="/home/sfathollahzadeh/Documents/GitHub/systemds/target/SystemDS.j
 lib_files_path="/home/sfathollahzadeh/Documents/GitHub/systemds/target/lib/*"
 home_log="/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/LOG"
 sep="_"
-declare -a  datasets=("aminer")
+declare -a  datasets=("aminer" "imdb")
 
-BASE_SCRIPT="java\
+BASE_SCRIPT="time java\
             -Dlog4j.configuration=file:$LOG4JPROP\
             -Xms1g\
             -Xmx15g\
