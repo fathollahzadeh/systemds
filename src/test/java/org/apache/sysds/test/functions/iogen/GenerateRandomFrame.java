@@ -232,30 +232,30 @@ public class GenerateRandomFrame extends AutomatedTestBase {
 		}
 		writer.close();
 
-		writer = new BufferedWriter(new FileWriter(fileName + ".schema"));
-		StringBuilder sb = new StringBuilder();
-		for(int c = 0; c < ncols; c++) {
-			sb.append(schema[c]);
-			if(c != ncols - 1)
-				sb.append(",");
-		}
-
-		writer.write(sb.toString());
-		writer.close();
+//		writer = new BufferedWriter(new FileWriter(fileName + ".schema"));
+//		StringBuilder sb = new StringBuilder();
+//		for(int c = 0; c < ncols; c++) {
+//			sb.append(schema[c]);
+//			if(c != ncols - 1)
+//				sb.append(",");
+//		}
+//
+//		writer.write(sb.toString());
+//		writer.close();
 	}
 
 	@Test
 	@Ignore
 	public void generateDataset() throws Exception {
-		int nrows = 5000;
-		int ncols = 5000;
+		int nrows = 1000;
+		int ncols = 20000;
 		double sparsity = 1;
-		String HOME = SCRIPT_DIR + TEST_DIR;
+		String HOME = "/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets";//SCRIPT_DIR + TEST_DIR;
 		String[] naStrings = {"Nan", "NAN", "", "inf", "null", "NULL"};
 		String[] names = new String[ncols];
 		Types.ValueType[] schema = new Types.ValueType[ncols];
 
-		for(int i = 0; i < nrows; i++) {
+		for(int i = 0; i < ncols; i++) {
 			names[i] = "C_" + i;
 			Random rn = new Random();
 			int rnt = rn.nextInt(types.length);
@@ -264,8 +264,8 @@ public class GenerateRandomFrame extends AutomatedTestBase {
 		String[][] data = generateRandomData(schema, nrows, ncols, -100, 100, sparsity, naStrings);
 		saveData(schema, data, nrows, ncols, " ", ":", naStrings, HOME + "/data/", sparsity, false);
 
-		for(int r = 10; r <= 100; r += 10) {
-			saveData(schema, data, r, r, " ", ":", naStrings, HOME + "/samples/", sparsity, true);
+		for(int r = 100; r <= 1000; r += 100) {
+			saveData(schema, data, r, ncols, " ", ":", naStrings, HOME + "/samples/", sparsity, true);
 		}
 
 		BufferedWriter writer = new BufferedWriter(new FileWriter(HOME+"/data/data"+"_nrows_" + nrows + "_ncols_" + ncols + "_sparsity_" + sparsity + ".schema"));

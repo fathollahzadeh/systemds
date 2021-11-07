@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+# Set properties
+systemDS_Home="/home/sfathollahzadeh/Documents/GitHub/systemds"
+LOG4JPROP="$systemDS_Home/scripts/perftest/conf/log4j.properties"
+jar_file_path="$systemDS_Home/target/SystemDS.jar"
+lib_files_path="$systemDS_Home/target/lib/*"
+root_data_path="/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets"
+home_log="/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/LOG"
+sep="_"
+ncols=20000
+declare -a  datasets=("csv")
+
+BASE_SCRIPT="time java\
+            -Dlog4j.configuration=file:$LOG4JPROP\
+            -Xms1g\
+            -Xmx15g\
+            -cp\
+             $jar_file_path:$lib_files_path\
+             org.apache.sysds.runtime.iogen.exp.GIOFrameExperimentHDFS\
+             "
+
+for ro in 1 #2 3 4 5
+do
+  for d in "${datasets[@]}"; do
+    ./resultPath.sh $home_log $d$ro
+    data_file_name="$root_data_path/$d/$d.data"
+    for sr in 100 #200 300 400 500 600 700 800 900 1000
+      do
+        for p in 1.0
+         do
+          schema_file_name="$root_data_path/$d/$d.schema"
+          sample_raw_fileName="$root_data_path/$d/sample_$sr$sep$ncols.raw"
+          sample_frame_file_name="$root_data_path/$d/sample_$sr$sep$ncols.frame"
+          delimiter=","
+          SCRIPT="$BASE_SCRIPT\
+                  $sample_raw_fileName\
+                  $sample_frame_file_name\
+                  $sr\
+                  $delimiter\
+                  $schema_file_name\
+                  $data_file_name\
+                  $p\
+                  $d\
+                  $home_log/benchmark/GIOFrameExperimentHDFS/$d$ro.csv
+          "
+#          echo 3 > /proc/sys/vm/drop_caches && sync
+#          sleep 20
+          time $SCRIPT
+        done
+      done
+  done
+done
