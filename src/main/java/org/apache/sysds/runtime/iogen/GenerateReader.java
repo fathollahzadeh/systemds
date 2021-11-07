@@ -23,6 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.sysds.runtime.io.MatrixReader;
 import org.apache.sysds.runtime.io.FrameReader;
+import org.apache.sysds.runtime.iogen.template.rapidjson.TemplateRapidJSON;
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
 import org.apache.sysds.runtime.matrix.data.MatrixBlock;
 
@@ -110,6 +111,7 @@ public abstract class GenerateReader {
 	public static class GenerateReaderFrame extends GenerateReader {
 
 		private FrameReader frameReader;
+		private String fileName;
 
 		public GenerateReaderFrame(SampleProperties sampleProperties) throws Exception {
 			super(sampleProperties);
@@ -119,6 +121,21 @@ public abstract class GenerateReader {
 			super(new SampleProperties(sampleRaw, sampleFrame));
 		}
 
+		public void getReader(String className, String sourceFileName, String headerFileName) throws Exception {
+			// 1. Identify file format:
+			boolean isMapped = readerMapping != null && readerMapping.isMapped();
+			if(!isMapped) {
+				throw new Exception("Sample raw data and sample frame don't match !!");
+			}
+			properties = readerMapping.getFormatProperties();
+			if(properties == null) {
+				throw new Exception("The file format couldn't recognize!!");
+			}
+
+			TemplateRapidJSON rapidJSON = new TemplateRapidJSON(properties);
+			rapidJSON.getFrameReaderCode(className, sourceFileName, headerFileName);
+
+		}
 		public FrameReader getReader() throws Exception {
 
 			// 1. Identify file format:
