@@ -43,7 +43,40 @@ public class FrameGenerateReaderJSONTest2 extends GenerateReaderFrameTest {
 	public void test1() throws Exception {
 
 		String[] percentS = {"10", "20", "30","40","50","60","70","80","90","100"};
-		for(int i=0;i<10;i++) {
+		for(int i=9;i<10;i++) {
+			String[] percentF = new String[] {"0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0"};
+			String sample_raw_fileName = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/aminer/sample_100_" + percentF[i] + ".raw";
+			String sample_frame_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/aminer/sample_100_" + percentF[i] + ".frame";
+			int sample_fram_nrows = 100;
+			String sample_delimiter = "\t";
+			String schema_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/aminer/aminer_" + percentF[i] + ".schema";
+			String data_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/aminer/aminer.data";
+
+			Util util = new Util();
+			Types.ValueType[] sampleSchema = util.getSchema(schema_file_name);
+			int ncols = sampleSchema.length;
+			FrameBlock sampleFrame = new FrameBlock(sampleSchema, util.loadFrameData(sample_frame_file_name, sample_fram_nrows, ncols, sample_delimiter));
+
+			String sampleRaw = util.readEntireTextFile(sample_raw_fileName);
+			GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame);
+
+			String baseFileName = "/home/sfathollahzadeh/Documents/GitHub/papers/2022-icde-gIO/experiments/benchmark/RapidJSONCPP/src/at/tugraz/";
+			String sourceFileName = baseFileName + "source/FrameReaderGIO_" + percentS[i] + ".cpp";
+			String headerFileName = baseFileName + "header/FrameReaderGIO_" + percentS[i] + ".h";
+
+			gr.getReader("FrameReaderGIO_" + percentS[i], sourceFileName, headerFileName);
+			//FrameReader fr = gr.getReader();
+			//FrameBlock frameBlock = fr.readFrameFromHDFS(data_file_name, sampleSchema, -1, ncols);
+			break;
+		}
+	}
+
+
+	@Test
+	public void test2() throws Exception {
+
+		String[] percentS = {"10", "20", "30","40","50","60","70","80","90","100"};
+		for(int i=9;i<10;i++) {
 			String[] percentF = new String[] {"0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0"};
 			String sample_raw_fileName = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_" + percentF[i] + ".raw";
 			String sample_frame_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_" + percentF[i] + ".frame";
@@ -67,6 +100,7 @@ public class FrameGenerateReaderJSONTest2 extends GenerateReaderFrameTest {
 			gr.getReader("FrameReaderGIO_" + percentS[i], sourceFileName, headerFileName);
 			//FrameReader fr = gr.getReader();
 			//FrameBlock frameBlock = fr.readFrameFromHDFS(data_file_name, sampleSchema, -1, ncols);
+			break;
 		}
 	}
 
