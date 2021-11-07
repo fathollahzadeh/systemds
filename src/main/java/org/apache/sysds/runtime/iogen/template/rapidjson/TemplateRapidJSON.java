@@ -70,12 +70,11 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 				root = root.children.get(keys[i]);
 			}
 		}
-
 		StringBuilder sbSource = new StringBuilder();
 		StringBuilder sbHeader = new StringBuilder();
 		for(String rk : roots.keySet()) {
 			TreeNode tn = roots.get(rk);
-			Pair<String, String> pairCodes= tn.getCode(0);
+			Pair<String, String> pairCodes = tn.getCode(0);
 			sbSource.append(pairCodes.getKey());
 			sbSource.append("\n");
 			sbHeader.append(pairCodes.getValue());
@@ -88,8 +87,8 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 		headerTemplate = headerTemplate.replace(code, sbHeader.toString());
 		headerTemplate = headerTemplate.replace(className, cppClassName);
 
-		saveCode(sourceFileName, sourceTemplate );
-		saveCode(headerFileName, headerTemplate );
+		saveCode(sourceFileName, sourceTemplate);
+		saveCode(headerFileName, headerTemplate);
 
 		return sourceTemplate;
 	}
@@ -108,8 +107,10 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 	}
 
 	private void appendItem(StringBuilder sb, String document, String key, Types.ValueType vt) {
-		sb.append("	if (" + document + ".HasMember(\"" + key + "\")){ \n"); //&& !"+document+"[\"" + key + "\"].IsNull()
-		sb.append("colValue->push_back(getActualValue(" + document + "[\"" + key + "\"]," + vt + "));\n col->push_back(index);\n } \n");
+		sb.append(
+			"	if (" + document + ".HasMember(\"" + key + "\")){ \n"); //&& !"+document+"[\"" + key + "\"].IsNull()
+		sb.append(
+			"colValue->push_back(getActualValue(" + document + "[\"" + key + "\"]," + vt + "));\n col->push_back(index);\n } \n");
 		sb.append("	index++; \n");
 	}
 
@@ -141,8 +142,9 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 
 			if(children.size() == 0) {
 				if(isNumeric(key)) {
-					sbSource.append("colValue->push_back(getActualValue(" + document + "," + valueType + "));\n 	} \n");
+					sbSource.append("colValue->push_back(getActualValue(" + document + "[l"+(level-1)+"]," + valueType + "));\n");
 					sbSource.append("col->push_back(index);\n");
+					sbSource.append("	index++; \n");
 				}
 				else
 					appendItem(sbSource, document, key, valueType);
@@ -158,7 +160,7 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 					appendArrayItemCondition(sbSource, "0", currDocument);
 					sbSource.append("){ \n");
 					String setName = getRandomName("indexSet");
-					sbHeader.append("set <SizeType> "+setName+" = {");
+					sbHeader.append("set <SizeType> " + setName + " = {");
 					int minIndex = 0;
 					int maxIndex = 0;
 					for(String k : ks) {
@@ -170,15 +172,17 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 					maxIndex++;
 					sbHeader.deleteCharAt(sbHeader.length() - 1);
 					sbHeader.append("}; \n");
-					String listSize= getRandomName("listSize");
-					sbHeader.append(" int "+listSize+" = 0; \n");
-					sbSource.append(listSize+ " = " + currDocument + ".Size(); \n");
-					sbSource.append("if("+listSize+" > " + maxIndex + ") ").append(listSize+" = " + maxIndex + ";\n");
-					sbSource.append("for (SizeType l" + level + " = " + minIndex + "; l" + level + " < "+listSize+"; l" + level + "++) {\n");
-					sbSource.append("if( "+setName+".find(l" + level + ") != "+setName+".end()){ \n");
+					String listSize = getRandomName("listSize");
+					sbHeader.append(" int " + listSize + " = 0; \n");
+					sbSource.append(listSize + " = " + currDocument + ".Size(); \n");
+					sbSource.append("if(" + listSize + " > " + maxIndex + ") ")
+						.append(listSize + " = " + maxIndex + ";\n");
+					sbSource.append(
+						"for (SizeType l" + level + " = " + minIndex + "; l" + level + " < " + listSize + "; l" + level + "++) {\n");
+					sbSource.append("if( " + setName + ".find(l" + level + ") != " + setName + ".end()){ \n");
 					level++;
 
-					Pair<String, String> pairCodes= children.get(ks.iterator().next()).getCode(level);
+					Pair<String, String> pairCodes = children.get(ks.iterator().next()).getCode(level);
 					sbSource.append(pairCodes.getKey());
 					sbHeader.append(pairCodes.getValue());
 
@@ -195,14 +199,14 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 							appendStringCondition(sbSource, tn.key, tn.document);
 							sbSource.append("){\n");
 
-							Pair<String, String> pairCodes= children.get(s).getCode(level);
+							Pair<String, String> pairCodes = children.get(s).getCode(level);
 							sbSource.append(pairCodes.getKey()).append("\n");
 							sbHeader.append(pairCodes.getValue()).append("\n");
 
 							sbSource.append("\n}\n");
 						}
 						else {
-							Pair<String, String> pairCodes= children.get(s).getCode(level);
+							Pair<String, String> pairCodes = children.get(s).getCode(level);
 							sbSource.append(pairCodes.getKey()).append("\n");
 							sbHeader.append(pairCodes.getValue()).append("\n");
 						}
@@ -212,13 +216,13 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 			return new Pair<>(sbSource.toString(), sbHeader.toString());
 		}
 
-		private String getRandomName(String base){
+		private String getRandomName(String base) {
 			Random r = new Random();
 			int low = 0;
 			int high = 100000000;
-			int result = r.nextInt(high-low) + low;
+			int result = r.nextInt(high - low) + low;
 
-			return base+"_"+result;
+			return base + "_" + result;
 		}
 
 	}
