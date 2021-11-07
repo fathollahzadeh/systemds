@@ -121,7 +121,7 @@ public abstract class GenerateReader {
 			super(new SampleProperties(sampleRaw, sampleFrame));
 		}
 
-		public void getReader(String sourceFileName, String headerFileName) throws Exception {
+		public void getReader(String className, String sourceFileName, String headerFileName) throws Exception {
 			// 1. Identify file format:
 			boolean isMapped = readerMapping != null && readerMapping.isMapped();
 			if(!isMapped) {
@@ -133,7 +133,7 @@ public abstract class GenerateReader {
 			}
 
 			TemplateRapidJSON rapidJSON = new TemplateRapidJSON(properties);
-			rapidJSON.getFrameReaderCode(sourceFileName, headerFileName);
+			rapidJSON.getFrameReaderCode(className, sourceFileName, headerFileName);
 
 		}
 		public FrameReader getReader() throws Exception {

@@ -33,7 +33,7 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 		super(_props);
 	}
 
-	@Override public String getFrameReaderCode(String sourceFileName, String headerFileName) {
+	@Override public String getFrameReaderCode(String cppClassName, String sourceFileName, String headerFileName) {
 
 		String[] colKeys = _props.getColKeys();
 		Types.ValueType[] schema = _props.getSchema();
@@ -83,12 +83,14 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 		}
 
 		sourceTemplate = sourceTemplate.replace(code, sbSource.toString());
+		sourceTemplate = sourceTemplate.replace(className, cppClassName);
+
 		headerTemplate = headerTemplate.replace(code, sbHeader.toString());
+		headerTemplate = headerTemplate.replace(className, cppClassName);
 
 		saveCode(sourceFileName, sourceTemplate );
 		saveCode(headerFileName, headerTemplate );
 
-		System.out.println(sourceTemplate);
 		return sourceTemplate;
 	}
 
@@ -168,12 +170,18 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 					maxIndex++;
 					sbHeader.deleteCharAt(sbHeader.length() - 1);
 					sbHeader.append("}; \n");
-					sbSource.append("listSize = " + currDocument + ".Size(); \n");
-					sbSource.append("if(listSize > " + maxIndex + ") ").append("listSize = " + maxIndex + ";\n");
-					sbSource.append("for (SizeType l" + level + " = " + minIndex + "; l" + level + " < listSize; l" + level + "++) {\n");
+					String listSize= getRandomName("listSize");
+					sbHeader.append(" int "+listSize+" = 0; \n");
+					sbSource.append(listSize+ " = " + currDocument + ".Size(); \n");
+					sbSource.append("if("+listSize+" > " + maxIndex + ") ").append(listSize+" = " + maxIndex + ";\n");
+					sbSource.append("for (SizeType l" + level + " = " + minIndex + "; l" + level + " < "+listSize+"; l" + level + "++) {\n");
 					sbSource.append("if( "+setName+".find(l" + level + ") != "+setName+".end()){ \n");
 					level++;
-					sbSource.append(children.get(ks.iterator().next()).getCode(level).getKey());
+
+					Pair<String, String> pairCodes= children.get(ks.iterator().next()).getCode(level);
+					sbSource.append(pairCodes.getKey());
+					sbHeader.append(pairCodes.getValue());
+
 					sbSource.append("}\n");
 					sbSource.append("}\n");
 					sbSource.append("}\n");
@@ -186,11 +194,18 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 							sbSource.append("if(");
 							appendStringCondition(sbSource, tn.key, tn.document);
 							sbSource.append("){\n");
-							sbSource.append(children.get(s).getCode(level).getKey()).append("\n");
+
+							Pair<String, String> pairCodes= children.get(s).getCode(level);
+							sbSource.append(pairCodes.getKey()).append("\n");
+							sbHeader.append(pairCodes.getValue()).append("\n");
+
 							sbSource.append("\n}\n");
 						}
-						else
-							sbSource.append(children.get(s).getCode(level).getKey()).append("\n");
+						else {
+							Pair<String, String> pairCodes= children.get(s).getCode(level);
+							sbSource.append(pairCodes.getKey()).append("\n");
+							sbHeader.append(pairCodes.getValue()).append("\n");
+						}
 					}
 				}
 			}

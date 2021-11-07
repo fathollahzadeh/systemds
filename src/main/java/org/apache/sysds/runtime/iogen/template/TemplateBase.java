@@ -37,7 +37,7 @@ public abstract class TemplateBase {
 
 
 	protected void saveCode(String fileName, String code) {
-		try(Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName, true), "utf-8"))) {
+		try(Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName, false), "utf-8"))) {
 			writer.write(code);
 		}
 		catch(Exception ex) {

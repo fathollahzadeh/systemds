@@ -27,30 +27,30 @@ public abstract class TemplateBaseRapidJSON extends TemplateBase {
 	protected String headerTemplate;
 	protected String sourceTemplate;
 	protected String code = "%code%";
+	protected String className="GIOClassName";
 
-	public abstract String getFrameReaderCode(String sourceFileName, String headerFileName);
+	public abstract String getFrameReaderCode(String className, String sourceFileName, String headerFileName);
 
 	public TemplateBaseRapidJSON(CustomProperties _props) {
 		super(_props);
-		headerTemplate = "#ifndef RAPIDJSONCPP_FRAMEREADERGIO_H \n"+
-						 "#define RAPIDJSONCPP_FRAMEREADERGIO_H \n"+
+		headerTemplate = "#ifndef RAPIDJSONCPP_"+className+"_H \n"+
+						 "#define RAPIDJSONCPP_"+className+"_H \n"+
 						 "#include \"FrameReader.h\" \n"+
 						 "#include <set> \n" +
-						 "class FrameReaderGIO : public FrameReader  { \n"+
+						 "class "+className+" : public FrameReader  { \n"+
 						 "private: \n"+
 						 	code + "\n"+
 						 "public: \n"+
-						 "FrameReaderGIO(); \n"+
-						 "virtual ~FrameReaderGIO(); \n"+
+						 className+"(); \n"+
+						 "virtual ~"+className+"(); \n"+
 						 "void getJSONValues(vector<long> *col, vector<ItemObject*> *colValue, Document &d) override; \n"+
 						 "}; \n"+
-						 "#endif //RAPIDJSONCPP_FRAMEREADERGIO_H \n";
-		sourceTemplate = "#include \"FrameReaderGIO.h\" \n"+
-						 "FrameReaderGIO::FrameReaderGIO() {} \n"+
-						 "FrameReaderGIO::~FrameReaderGIO() {} \n"+
-						 "void FrameReaderGIO::getJSONValues(vector<long> *col, vector<ItemObject*> *colValue, Document &d) { \n"+
+						 "#endif //RAPIDJSONCPP_"+className+"_H \n";
+		sourceTemplate = "#include \""+className+".h\" \n"+
+						 className+"::"+className+"() {} \n"+
+						 className+"::~"+className+"() {} \n"+
+						 "void "+className+"::getJSONValues(vector<long> *col, vector<ItemObject*> *colValue, Document &d) { \n"+
 						 " int index = 0; \n"+
-						 "int listSize = 0; \n"+
 							code+"\n"+
 						 "} \n";
 	}
