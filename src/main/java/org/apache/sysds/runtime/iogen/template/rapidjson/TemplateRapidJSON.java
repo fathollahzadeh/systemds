@@ -19,7 +19,6 @@
 
 package org.apache.sysds.runtime.iogen.template.rapidjson;
 
-import com.google.gson.Gson;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.runtime.iogen.CustomProperties;
 import org.apache.sysds.runtime.matrix.data.Pair;
@@ -143,7 +142,7 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 
 			if(children.size() == 0) {
 				if(isNumeric(key)) {
-					sbSource.append("colValue->push_back(getActualValue(" + document + "," + valueType + "));\n");
+					sbSource.append("colValue->push_back(getActualValue(" + document + "[l"+(level-1)+"]," + valueType + "));\n");
 					sbSource.append("col->push_back(index);\n");
 					sbSource.append("	index++; \n");
 				}
@@ -156,8 +155,8 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 
 					String currDocument = document + "[\"" + key + "\"]";
 					sbSource.append("if(");
-					//appendStringCondition(sbSource, key, document);
-					//sbSource.append(" && ");
+					appendStringCondition(sbSource, key, document);
+					sbSource.append(" && ");
 					appendArrayItemCondition(sbSource, "0", currDocument);
 					sbSource.append("){ \n");
 					String setName = getRandomName("indexSet");
