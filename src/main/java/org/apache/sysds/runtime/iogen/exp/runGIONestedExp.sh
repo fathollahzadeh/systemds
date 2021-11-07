@@ -18,35 +18,37 @@ BASE_SCRIPT="time java\
              org.apache.sysds.runtime.iogen.exp.GIONestedExperimentHDFS\
              "
 
-for d in "${datasets[@]}"; do
-  ./resultPath.sh $home_log $d
-  data_file_name="$root_data_path/$d/$d.data"
-  for sr in 100
-    do
-      for p in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
-       do
-        schema_file_name="$root_data_path/$d/$d$sep$p.schema"
-        sample_raw_fileName="$root_data_path/$d/sample_$sr$sep$p.raw"
-        sample_frame_file_name="$root_data_path/$d/sample_$sr$sep$p.frame"
-        delimiter="\t"
-#        if [[ "$d" == "imdb" ]]; then
-#          delimiter="\t";
-#        fi
-        SCRIPT="$BASE_SCRIPT\
-                $sample_raw_fileName\
-                $sample_frame_file_name\
-                $sr\
-                $delimiter\
-                $schema_file_name\
-                $data_file_name\
-                $p\
-                $d\
-                $home_log/benchmark/GIONestedExperiment/$d.csv
-        "
-        #echo $SCRIPT
-        echo 3 > /proc/sys/vm/drop_caches && sync
-        sleep 20
-        time $SCRIPT
+for ro in 1 2 3
+do
+
+  for d in "${datasets[@]}"; do
+    ./resultPath.sh $home_log $d$ro
+    data_file_name="$root_data_path/$d/$d.data"
+    for sr in 100
+      do
+        for p in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+         do
+          schema_file_name="$root_data_path/$d/$d$sep$p.schema"
+          sample_raw_fileName="$root_data_path/$d/sample_$sr$sep$p.raw"
+          sample_frame_file_name="$root_data_path/$d/sample_$sr$sep$p.frame"
+          delimiter="\t"
+          SCRIPT="$BASE_SCRIPT\
+                  $sample_raw_fileName\
+                  $sample_frame_file_name\
+                  $sr\
+                  $delimiter\
+                  $schema_file_name\
+                  $data_file_name\
+                  $p\
+                  $d\
+                  $home_log/benchmark/GIONestedExperiment/$d$ro.csv
+          "
+          #echo $SCRIPT
+          echo 3 > /proc/sys/vm/drop_caches && sync
+          sleep 20
+          time $SCRIPT
+        done
       done
-    done
+  done
+
 done
