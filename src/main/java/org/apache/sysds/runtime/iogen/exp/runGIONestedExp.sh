@@ -18,7 +18,7 @@ BASE_SCRIPT="time java\
              org.apache.sysds.runtime.iogen.exp.GIONestedExperimentHDFS\
              "
 
-for ro in 1 2 3
+for ro in 1 2 3 4 5
 do
 
   for d in "${datasets[@]}"; do
