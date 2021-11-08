@@ -247,8 +247,8 @@ public class GenerateRandomFrame extends AutomatedTestBase {
 	@Test
 	@Ignore
 	public void generateDataset() throws Exception {
-		int nrows = 1000;
-		int ncols = 20000;
+		int nrows = 10000;
+		int ncols = 2000;
 		double sparsity = 1;
 		String HOME = "/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets";//SCRIPT_DIR + TEST_DIR;
 		String[] naStrings = {"Nan", "NAN", "", "inf", "null", "NULL"};
@@ -264,7 +264,7 @@ public class GenerateRandomFrame extends AutomatedTestBase {
 		String[][] data = generateRandomData(schema, nrows, ncols, -100, 100, sparsity, naStrings);
 		saveData(schema, data, nrows, ncols, " ", ":", naStrings, HOME + "/data/", sparsity, false);
 
-		for(int r = 100; r <= 1000; r += 100) {
+		for(int r = 10; r <= 100; r += 10) {
 			saveData(schema, data, r, ncols, " ", ":", naStrings, HOME + "/samples/", sparsity, true);
 		}
 
@@ -283,7 +283,7 @@ public class GenerateRandomFrame extends AutomatedTestBase {
 		String indexSeparator, String[] naStrings, String HOME, double sparsity, boolean saveSampleFrame)
 		throws Exception {
 
-		String baseFileName = "_nrows_" + nrows + "_ncols_" + ncols + "_sparsity_" + sparsity;
+		String baseFileName = "_" + nrows + "_" + ncols;
 
 		String csv = HOME + "CSV" + baseFileName;
 

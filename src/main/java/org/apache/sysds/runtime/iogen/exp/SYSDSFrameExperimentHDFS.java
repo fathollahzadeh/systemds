@@ -9,11 +9,11 @@ public class SYSDSFrameExperimentHDFS {
 
 	public static void main(String[] args) throws Exception {
 
-		String delimiter = args[1];
-		String schemaFileName = args[2];
-		String dataFileName = args[3];
-		String datasetName = args[4];
-		String LOG_HOME =args[5];
+		String delimiter = " ";//args[0];
+		String schemaFileName = args[1];
+		String dataFileName = args[2];
+		String datasetName = args[3];
+		String LOG_HOME =args[4];
 
 		if(delimiter.equals("\\t"))
 			delimiter = "\t";

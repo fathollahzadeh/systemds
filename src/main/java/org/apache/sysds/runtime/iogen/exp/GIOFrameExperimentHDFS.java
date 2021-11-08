@@ -41,7 +41,7 @@ public class GIOFrameExperimentHDFS {
 		double generateTime = (System.nanoTime() - tmpTime) / 1000000000.0;
 
 		tmpTime = System.nanoTime();
-		FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, gr.getProperties().getSchema(), -1, gr.getProperties().getSchema().length);
+		FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, sampleSchema, -1, sampleSchema.length);
 		double readTime = (System.nanoTime() - tmpTime) / 1000000000.0;
 
 		String log= datasetName+","+ frameBlock.getNumRows()+","+ ncols+","+percent+","+ sampleNRows+","+ generateTime+","+readTime;
