@@ -8,8 +8,8 @@ lib_files_path="$systemDS_Home/target/lib/*"
 root_data_path="/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets"
 home_log="/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/LOG"
 sep="_"
-ncols=2000
-nrows=10000
+ncols=2001
+nrows=10001
 result_path="SYSDSFrameExperiment"
 declare -a  datasets=("mm")
 
