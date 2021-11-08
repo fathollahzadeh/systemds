@@ -9,6 +9,7 @@ root_data_path="/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets"
 home_log="/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/LOG"
 sep="_"
 ncols=20000
+result_path="GIOFrameExperiment"
 declare -a  datasets=("csv")
 
 BASE_SCRIPT="time java\
@@ -23,7 +24,7 @@ BASE_SCRIPT="time java\
 for ro in 1 #2 3 4 5
 do
   for d in "${datasets[@]}"; do
-    ./resultPath.sh $home_log $d$ro
+    ./resultPath.sh $home_log $d$ro $result_path
     data_file_name="$root_data_path/$d/$d.data"
     for sr in 100 #200 300 400 500 600 700 800 900 1000
       do
@@ -42,7 +43,7 @@ do
                   $data_file_name\
                   $p\
                   $d\
-                  $home_log/benchmark/GIOFrameExperimentHDFS/$d$ro.csv
+                  $home_log/benchmark/$result_path/$d$ro.csv
           "
 #          echo 3 > /proc/sys/vm/drop_caches && sync
 #          sleep 20

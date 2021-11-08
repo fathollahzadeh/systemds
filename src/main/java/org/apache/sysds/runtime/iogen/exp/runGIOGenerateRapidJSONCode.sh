@@ -9,6 +9,7 @@ lib_files_path="$systemDS_Home/target/lib/*"
 root_data_path="/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets"
 home_log="/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/LOG"
 sep="_"
+result_path="GIONestedExperiment"
 declare -a  datasets=("aminer")
 
 BASE_SCRIPT="time java\
@@ -23,7 +24,7 @@ BASE_SCRIPT="time java\
 for ro in 1 #2 3 4 5
 do
   for d in "${datasets[@]}"; do
-    ./resultPath.sh $home_log $d$ro
+    ./resultPath.sh $home_log $d$ro $result_path
     for sr in 100
       do
         for p in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
@@ -41,7 +42,7 @@ do
                   $src_cpp\
                   $p\
                   $d\
-                  $home_log/benchmark/GIONestedExperiment/$d$ro.csv
+                  $home_log/benchmark/$result_path/$d$ro.csv
           "
 #          echo 3 > /proc/sys/vm/drop_caches && sync
 #          sleep 20

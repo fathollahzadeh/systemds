@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 path_1="$1/benchmark"
-path_2="$path_1/GIOExperiment"
+path_2="$path_1/$3"
 mkdir -p $1
 mkdir -p "$path_1"
 mkdir -p "$path_2"
