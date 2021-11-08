@@ -10,7 +10,7 @@ home_log="/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/LOG"
 sep="_"
 ncols=2000
 result_path="GIOFrameExperiment"
-declare -a  datasets=("csv")
+declare -a  datasets=("mm")
 
 BASE_SCRIPT="time java\
             -Dlog4j.configuration=file:$LOG4JPROP\
@@ -21,12 +21,12 @@ BASE_SCRIPT="time java\
              org.apache.sysds.runtime.iogen.exp.GIOFrameExperimentHDFS\
              "
 
-for ro in 1 2 3 4 5
+for ro in 1 #2 3 4 5
 do
   for d in "${datasets[@]}"; do
     ./resultPath.sh $home_log $d$ro $result_path
     data_file_name="$root_data_path/$d/$d.data"
-    for sr in 10 20 30 40 50 60 70 80 90 100
+    for sr in 10 #20 30 40 50 60 70 80 90 100
       do
         for p in 1.0
          do

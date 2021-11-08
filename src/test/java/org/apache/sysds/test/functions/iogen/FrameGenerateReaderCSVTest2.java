@@ -45,16 +45,16 @@ public class FrameGenerateReaderCSVTest2 extends GenerateReaderFrameTest {
 
 	@Test
 	public void test1() throws Exception {
-		String sampleRawFileName = "/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/csv/sample_10_2000.raw";
-		String sampleFrameFileName = "/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/csv/sample_10_2000.frame";
+		String sampleRawFileName = "/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/libsvm/sample_10_2000.raw";
+		String sampleFrameFileName = "/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/libsvm/sample_10_2000.frame";
 		Integer sampleNRows = 10;
 		String delimiter = ",";
-		String schemaFileName = "/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/csv/csv.schema";
-		String dataFileName = "/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/csv/csv.data";
+		String schemaFileName = "/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/libsvm/libsvm.schema";
+		String dataFileName = "/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/libsvm/libsvm.data";
 
 		Float percent = 1.0f;
 		String datasetName = "csv";
-		String LOG_HOME ="/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/LOG/benchmark/GIOFrameExperiment/csv1.csv";
+		String LOG_HOME ="/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/LOG/benchmark/GIOFrameExperiment/libsvm1.csv";
 
 		Util util = new Util();
 		Types.ValueType[] schema = util.getSchema(schemaFileName);
@@ -63,7 +63,7 @@ public class FrameGenerateReaderCSVTest2 extends GenerateReaderFrameTest {
 
 		FileFormatPropertiesCSV csvpro = new FileFormatPropertiesCSV(false, delimiter, false);
 		FrameReaderTextCSV csv = new FrameReaderTextCSV(csvpro);
-		FrameBlock sampleFrame = csv.readFrameFromHDFS(sampleFrameFileName, schema,sampleNRows,ncols);
+		FrameBlock sampleFrame = csv.readFrameFromHDFS(sampleFrameFileName, schema,-1,ncols);
 
 		double tmpTime = System.nanoTime();
 		String sampleRaw = util.readEntireTextFile(sampleRawFileName);

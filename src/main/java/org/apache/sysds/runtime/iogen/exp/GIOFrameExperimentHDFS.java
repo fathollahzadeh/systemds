@@ -32,7 +32,7 @@ public class GIOFrameExperimentHDFS {
 
 		FileFormatPropertiesCSV csvpro = new FileFormatPropertiesCSV(false, delimiter, false);
 		FrameReaderTextCSV csv = new FrameReaderTextCSV(csvpro);
-		FrameBlock sampleFrame = csv.readFrameFromHDFS(sampleFrameFileName, sampleSchema,sampleNRows,ncols);
+		FrameBlock sampleFrame = csv.readFrameFromHDFS(sampleFrameFileName, sampleSchema,-1,ncols);
 
 		double tmpTime = System.nanoTime();
 		String sampleRaw = util.readEntireTextFile(sampleRawFileName);

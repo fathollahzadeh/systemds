@@ -9,8 +9,9 @@ root_data_path="/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets"
 home_log="/media/sfathollahzadeh/Windows1/saeedData/FlatDatasets/LOG"
 sep="_"
 ncols=2000
+nrows=10000
 result_path="SYSDSFrameExperiment"
-declare -a  datasets=("csv")
+declare -a  datasets=("mm")
 
 BASE_SCRIPT="time java\
             -Dlog4j.configuration=file:$LOG4JPROP\
@@ -21,7 +22,7 @@ BASE_SCRIPT="time java\
              org.apache.sysds.runtime.iogen.exp.SYSDSFrameExperimentHDFS\
              "
 
-for ro in 1 2 3 4 5
+for ro in 1 #2 3 4 5
 do
   for d in "${datasets[@]}"; do
     ./resultPath.sh $home_log $d$ro $result_path
@@ -34,7 +35,8 @@ do
                   $schema_file_name\
                   $data_file_name\
                   $d\
-                  $home_log/benchmark/$result_path/$d$ro.csv
+                  $home_log/benchmark/$result_path/$d$ro.csv\
+                  $nrows
           "
 #          echo 3 > /proc/sys/vm/drop_caches && sync
 #          sleep 20
