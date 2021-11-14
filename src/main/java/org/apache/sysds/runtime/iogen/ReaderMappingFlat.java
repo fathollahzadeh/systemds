@@ -19,6 +19,7 @@
 
 package org.apache.sysds.runtime.iogen;
 
+import com.google.gson.Gson;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.runtime.io.IOUtilFunctions;
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
@@ -51,14 +52,28 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 	protected ValueTrimFormat[][] VTF;
 	protected ValueTrimFormat[][] VTFClone = null;
 
+	protected Trie suffixTrie;
+	//protected Trie prefixTrie;
+	protected ArrayList<Integer> rowTextSize;
+
 	public ReaderMappingFlat(String raw) throws Exception {
 		InputStream is = IOUtilFunctions.toInputStream(raw);
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
 		String value;
 		int nlines = 0;
 		sampleRawRows = new ArrayList<>();
+		suffixTrie = new Trie();
+		//prefixTrie = new Trie();
+		rowTextSize = new ArrayList<>();
 		while((value = br.readLine()) != null) {
 			sampleRawRows.add(new RawRow(value));
+			//prefixTrie.insert(value, nlines);
+
+			StringBuilder sbr = new StringBuilder();
+			sbr.append(value);
+			suffixTrie.insert(sbr.reverse().toString(), nlines);
+			rowTextSize.add(value.length());
+
 			nlines++;
 		}
 		this.nlines = nlines;
@@ -251,6 +266,67 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 				}
 			}
 		}
+	}
+
+	protected boolean findMapping2() {
+
+		mapRow = new int[nrows][ncols];
+		mapCol = new int[nrows][ncols];
+
+		// Set "-1" as default value for all defined matrix
+		for(int r = 0; r < nrows; r++)
+			for(int c = 0; c < ncols; c++)
+				mapRow[r][c] = mapCol[r][c] = -1;
+
+		for(int i = 0; i < nlines; i++) {
+			sampleRawRows.get(i).resetReserved();
+		}
+		int itRow = 0;
+		for(int r = 0; r < nrows; r++) {
+			ArrayList<ValueTrimFormat> vtfRow = new ArrayList<>();
+			for(int i = 0; i < ncols; i++) {
+				if(!VTF[r][i].isNotSet())
+					vtfRow.add(VTF[r][i]);
+			}
+			Collections.sort(vtfRow);
+
+			for(ValueTrimFormat vtf : vtfRow) {
+				int c = vtf.getColIndex();
+				StringBuilder sbWord = new StringBuilder();
+				sbWord.append(vtf.getStringOfActualValue());
+				String word = sbWord.reverse().toString();
+				if(word.startsWith("0."))
+					word = word.substring(2);
+				itRow = suffixTrie.containsStringAndSet(word);
+				if(itRow!=-1){
+					mapRow[r][c] = itRow;
+					mapCol[r][c] = rowTextSize.get(itRow) - word.length();
+				}
+//				HashSet<Integer> checkedLines = new HashSet<>();
+//				while(checkedLines.size() < nlines) {
+//					RawRow row = sampleRawRows.get(itRow);
+//					Pair<Integer, Integer> mi = row.findValue(vtf, false);
+//					if(mi.getKey() != -1) {
+//						mapRow[r][c] = itRow;
+//						mapCol[r][c] = mi.getKey();
+//						break;
+//					}
+//					else {
+//						checkedLines.add(itRow);
+//						itRow++;
+//						if(itRow == nlines)
+//							itRow = 0;
+//					}
+//				}
+			}
+		}
+		boolean flagMap = true;
+		for(int r = 0; r < nrows && flagMap; r++)
+			for(int c = 0; c < ncols && flagMap; c++)
+				if(mapRow[r][c] == -1 && !VTF[r][c].isNotSet()) {
+					flagMap = false;
+				}
+		return flagMap;
 	}
 
 	protected boolean findMapping() {
