@@ -140,6 +140,31 @@ public class TemplateJavaJSON extends TemplateBase {
 		return code;
 	}
 
+	private String getJSONArrayValue(String jsonArray, Integer index, Types.ValueType vt) {
+		String code = jsonArray + ".get";
+		switch(vt) {
+			case INT32:
+				code += "Int(" + index + ")";
+				break;
+			case INT64:
+				code += "Long(" + index + ")";
+				break;
+			case FP64:
+			case FP32:
+				code += "Double(" + index + ")";
+				break;
+			case STRING:
+				code += "String(" + index + ")";
+				break;
+			case BOOLEAN:
+				code += "Boolean(" + index + ")";
+				break;
+			default:
+				throw new RuntimeException("Format not supported!");
+		}
+		return code;
+	}
+
 	private String getRandomName(String base) {
 		Random r = new Random();
 		int low = 0;
@@ -186,9 +211,12 @@ public class TemplateJavaJSON extends TemplateBase {
 			StringBuilder sbHeader = new StringBuilder();
 			if(endOfCondition){
 				if(!isNumeric(key)){
-					sbSource.append("if(" + jsonObject + ".has(" + key + ")) { \n");
+					sbSource.append("if(" + jsonObject + ".has(" + key + "))");
 					sbSource.append("dest.set(row, " + colIndex + "," + getJSONKeyValue(jsonObject, key, valueType) + "); \n");
-					sbSource.append("}\n");
+				}
+				else{
+					sbSource.append("if("+jsonObject+".get("+colIndex+") !=null) \n");
+					sbSource.append("dest.set(row, " + colIndex + "," + getJSONArrayValue(jsonObject, colIndex, valueType) + "); \n");
 				}
 			}
 			else {

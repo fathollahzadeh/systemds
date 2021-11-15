@@ -13,7 +13,7 @@ public class myMain {
 		String js="{\"id\":123,\"name\":\"saeed\",\"address\":[\"inf13\", \"Artur-Michl-Gasse 8\"],\"family\":[{\"id\":456,\"name\":\"narges\"},{\"id\":789,\"name\":\"keysan\"}]}";
 		JSONObject jsonObject=new JSONObject(js);
 		JSONArray jsonArray = jsonObject.getJSONArray("family");
-
+		jsonArray.get
 		if(jsonArray.get(1)!=null)
 
 			System.out.println("sssssssssss");
