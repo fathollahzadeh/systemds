@@ -114,16 +114,6 @@ public class TemplateRapidJSON extends TemplateBaseRapidJSON {
 		sb.append("	index++; \n");
 	}
 
-	private boolean isNumeric(String str) {
-		try {
-			Integer.parseInt(str);
-			return true;
-		}
-		catch(NumberFormatException e) {
-			return false;
-		}
-	}
-
 	private class TreeNode {
 		private Types.ValueType valueType;
 		private String key;

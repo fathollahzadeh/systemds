@@ -23,6 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.sysds.runtime.io.MatrixReader;
 import org.apache.sysds.runtime.io.FrameReader;
+import org.apache.sysds.runtime.iogen.template.javajson.TemplateJavaJSON;
 import org.apache.sysds.runtime.iogen.template.rapidjson.TemplateRapidJSON;
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
 import org.apache.sysds.runtime.matrix.data.MatrixBlock;
@@ -121,7 +122,7 @@ public abstract class GenerateReader {
 			super(new SampleProperties(sampleRaw, sampleFrame));
 		}
 
-		public void getReader(String className, String sourceFileName, String headerFileName) throws Exception {
+		public void getReaderRapidJSON(String className, String sourceFileName, String headerFileName) throws Exception {
 			// 1. Identify file format:
 			boolean isMapped = readerMapping != null && readerMapping.isMapped();
 			if(!isMapped) {
@@ -134,6 +135,22 @@ public abstract class GenerateReader {
 
 			TemplateRapidJSON rapidJSON = new TemplateRapidJSON(properties);
 			rapidJSON.getFrameReaderCode(className, sourceFileName, headerFileName);
+
+		}
+
+		public String getReaderJavaJSON() throws Exception {
+			// 1. Identify file format:
+			boolean isMapped = readerMapping != null && readerMapping.isMapped();
+			if(!isMapped) {
+				throw new Exception("Sample raw data and sample frame don't match !!");
+			}
+			properties = readerMapping.getFormatProperties();
+			if(properties == null) {
+				throw new Exception("The file format couldn't recognize!!");
+			}
+
+			TemplateJavaJSON javaJSON = new TemplateJavaJSON(properties);
+			return javaJSON.getFrameReaderCode();
 
 		}
 		public FrameReader getReader() throws Exception {

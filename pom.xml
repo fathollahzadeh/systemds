@@ -236,8 +236,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.1</version><!--$NO-MVN-MAN-VER$-->
 				<configuration>
-					<source>${java.level}</source>
-					<target>${java.level}</target>
+					<source>9</source>
+					<target>9</target>
 				</configuration>
 			</plugin>
 

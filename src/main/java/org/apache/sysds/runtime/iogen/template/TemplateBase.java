@@ -34,7 +34,15 @@ public abstract class TemplateBase {
 		this._props = _props;
 	}
 
-
+	protected boolean isNumeric(String str) {
+		try {
+			Integer.parseInt(str);
+			return true;
+		}
+		catch(NumberFormatException e) {
+			return false;
+		}
+	}
 
 	protected void saveCode(String fileName, String code) {
 		try(Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName, false), "utf-8"))) {
