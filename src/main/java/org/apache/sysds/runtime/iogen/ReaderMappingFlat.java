@@ -19,7 +19,6 @@
 
 package org.apache.sysds.runtime.iogen;
 
-import com.google.gson.Gson;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.runtime.io.IOUtilFunctions;
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
@@ -197,7 +196,7 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 
 	public void runMapping() throws Exception {
 
-		mapped = findMapping();
+		mapped = findMapping2();
 		boolean schemaNumeric = isSchemaNumeric();
 		if(!mapped) {
 			// Clone Sample Matrix/Frame

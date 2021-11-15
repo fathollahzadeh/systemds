@@ -97,4 +97,14 @@ public class FrameGenerateReaderMatrixMarketTest extends GenerateReaderFrameTest
 		extractSampleRawMM(0,separator, indexSeparator);
 		runGenerateReaderTest();
 	}
+
+	@Test
+	public void test6() {
+		String[] naStrings = {"NULL", "inf", "NaN"};
+		String separator = ",";
+		String indexSeparator = ":";
+		generateRandomData(100, 2000, -100, 100, 1, naStrings);
+		extractSampleRawMM(0,separator, indexSeparator);
+		runGenerateReaderTest();
+	}
 }
