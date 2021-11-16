@@ -20,19 +20,15 @@
 package org.apache.sysds.test.functions.iogen;
 
 import org.apache.sysds.common.Types;
-import org.apache.sysds.runtime.io.FileFormatPropertiesCSV;
 import org.apache.sysds.runtime.io.FrameReader;
-import org.apache.sysds.runtime.io.FrameReaderTextCSV;
 import org.apache.sysds.runtime.iogen.GenerateReader;
 
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
 import org.junit.Test;
 
-import java.util.HashSet;
+public class FrameGenerateReaderJSONTest extends GenerateReaderFrameTest {
 
-public class FrameGenerateReaderJSONTest2 extends GenerateReaderFrameTest {
-
-	private final static String TEST_NAME = "MatrixGenerateReaderCSVTest";
+	private final static String TEST_NAME = "FrameGenerateReaderJSONTest";
 
 	@Override
 	protected String getTestName() {
@@ -126,7 +122,7 @@ public class FrameGenerateReaderJSONTest2 extends GenerateReaderFrameTest {
 			String sampleRaw = util.readEntireTextFile(sample_raw_fileName);
 			GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame);
 
-			String s = gr.getReaderJavaJSON();
+			//String s = gr.getReaderJavaJSON();
 			int a= 100;
 
 			//FrameReader fr = gr.getReader();
@@ -157,7 +153,7 @@ public class FrameGenerateReaderJSONTest2 extends GenerateReaderFrameTest {
 			String sampleRaw = util.readEntireTextFile(sample_raw_fileName);
 			GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame);
 
-			String s = gr.getReaderJavaJSON();
+			//String s = gr.getReaderJavaJSON();
 			int a= 100;
 
 			//FrameReader fr = gr.getReader();
@@ -166,5 +162,113 @@ public class FrameGenerateReaderJSONTest2 extends GenerateReaderFrameTest {
 		}
 	}
 
+	@Test
+	public void test5() throws Exception {
+
+
+			String sample_raw_fileName = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/aminer/sample_100_1.0.raw";
+			String sample_frame_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/aminer/sample_100_1.0.frame";
+			int sample_fram_nrows = 100;
+			String sample_delimiter = "\t";
+			String schema_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/aminer/aminer_1.0.schema";
+			String data_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/aminer/aminer.data";
+
+			Util util = new Util();
+			Types.ValueType[] sampleSchema = util.getSchema(schema_file_name);
+			int ncols = sampleSchema.length;
+			FrameBlock sampleFrame = new FrameBlock(sampleSchema, util.loadFrameData(sample_frame_file_name, sample_fram_nrows, ncols, sample_delimiter));
+
+			String sampleRaw = util.readEntireTextFile(sample_raw_fileName);
+			GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame);
+			gr.getReader();
+
+			//FrameReader fr = new GIOFrameReader(gr.getProperties());
+			//FrameBlock frameBlock = fr.readFrameFromHDFS(data_file_name, gr.getProperties().getSchema(), -1, gr.getProperties().getSchema().length);
+			//break;
+		}
+
+	@Test
+	public void test6() throws Exception {
+
+		String[] percentS = {"10", "20", "30","40","50","60","70","80","90","100"};
+		for(int i=9;i<10;i++) {
+			String[] percentF = new String[] {"0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0"};
+			String sample_raw_fileName = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_" + percentF[i] + ".raw";
+			String sample_frame_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_" + percentF[i] + ".frame";
+			int sample_fram_nrows = 100;
+			String sample_delimiter = "\t";
+			String schema_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/imdb_" + percentF[i] + ".schema";
+			String data_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/imdb.data";
+
+			Util util = new Util();
+			Types.ValueType[] sampleSchema = util.getSchema(schema_file_name);
+			int ncols = sampleSchema.length;
+			FrameBlock sampleFrame = new FrameBlock(sampleSchema, util.loadFrameData(sample_frame_file_name, sample_fram_nrows, ncols, sample_delimiter));
+
+			String sampleRaw = util.readEntireTextFile(sample_raw_fileName);
+			GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame);
+
+			//String s = gr.getReaderJavaJSON();
+			int a= 100;
+
+			//FrameReader fr = gr.getReader();
+			//FrameBlock frameBlock = fr.readFrameFromHDFS(data_file_name, sampleSchema, -1, ncols);
+			//break;
+		}
+	}
+
+	@Test
+	public void test7() throws Exception {
+
+
+		String sample_raw_fileName = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_1.0.raw";
+		String sample_frame_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_1.0.frame";
+		int sample_fram_nrows = 100;
+		String sample_delimiter = "\t";
+		String schema_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/imdb_1.0.schema";
+		String data_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/imdb.data";
+
+		Util util = new Util();
+		Types.ValueType[] sampleSchema = util.getSchema(schema_file_name);
+		int ncols = sampleSchema.length;
+		FrameBlock sampleFrame = new FrameBlock(sampleSchema, util.loadFrameData(sample_frame_file_name, sample_fram_nrows, ncols, sample_delimiter));
+
+		String sampleRaw = util.readEntireTextFile(sample_raw_fileName);
+		GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame);
+		gr.getReader();
+
+		//FrameReader fr = new GIOFrameReader(gr.getProperties());
+		//FrameBlock frameBlock = fr.readFrameFromHDFS(data_file_name, gr.getProperties().getSchema(), -1, gr.getProperties().getSchema().length);
+		//break;
+	}
+
+	@Test
+	public void test8() throws Exception {
+
+
+		String sample_raw_fileName = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_1.0.raw";
+		String sample_frame_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_1.0.frame";
+		int sample_fram_nrows = 100;
+		String sample_delimiter = "\t";
+		String schema_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/imdb_1.0.schema";
+		String data_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/imdb.data";
+
+		Util util = new Util();
+		Types.ValueType[] sampleSchema = util.getSchema(schema_file_name);
+		int ncols = sampleSchema.length;
+		FrameBlock sampleFrame = new FrameBlock(sampleSchema, util.loadFrameData(sample_frame_file_name, sample_fram_nrows, ncols, sample_delimiter));
+
+		String sampleRaw = util.readEntireTextFile(sample_raw_fileName);
+		GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame);
+
+		FrameReader fr = gr.getReader();
+		//FrameBlock frameBlock = fr.readFrameFromHDFS(data_file_name, sampleSchema, -1, ncols);
+
+		//gr.getReader();
+
+		//FrameReader fr = new GIOFrameReader(gr.getProperties());
+		FrameBlock frameBlock = fr.readFrameFromHDFS(data_file_name, gr.getProperties().getSchema(), -1, gr.getProperties().getSchema().length);
+		//break;
+	}
 
 }

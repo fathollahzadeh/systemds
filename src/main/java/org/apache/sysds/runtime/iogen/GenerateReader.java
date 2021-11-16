@@ -21,6 +21,7 @@ package org.apache.sysds.runtime.iogen;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.sysds.runtime.codegen.CodegenUtils;
 import org.apache.sysds.runtime.io.MatrixReader;
 import org.apache.sysds.runtime.io.FrameReader;
 import org.apache.sysds.runtime.iogen.template.javajson.TemplateJavaJSON;
@@ -137,22 +138,6 @@ public abstract class GenerateReader {
 			rapidJSON.getFrameReaderCode(className, sourceFileName, headerFileName);
 
 		}
-
-		public String getReaderJavaJSON() throws Exception {
-			// 1. Identify file format:
-			boolean isMapped = readerMapping != null && readerMapping.isMapped();
-			if(!isMapped) {
-				throw new Exception("Sample raw data and sample frame don't match !!");
-			}
-			properties = readerMapping.getFormatProperties();
-			if(properties == null) {
-				throw new Exception("The file format couldn't recognize!!");
-			}
-
-			TemplateJavaJSON javaJSON = new TemplateJavaJSON(properties);
-			return javaJSON.getFrameReaderCode();
-
-		}
 		public FrameReader getReader() throws Exception {
 
 			// 1. Identify file format:
@@ -181,8 +166,9 @@ public abstract class GenerateReader {
 				return frameReader;
 			}
 			else {
-
-				return frameReader = new FrameGenerateReader.FrameReaderJSON(properties);
+				String className = "GIOFrameReader";
+				TemplateJavaJSON src = new TemplateJavaJSON(properties, className);
+				return (FrameReader) CodegenUtils.compileClass(className, src.getFrameReaderCode()).getDeclaredConstructor().newInstance();
 			}
 		}
 	}
