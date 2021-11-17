@@ -246,11 +246,11 @@ public class FrameGenerateReaderJSONTest extends GenerateReaderFrameTest {
 	public void test8() throws Exception {
 
 
-		String sample_raw_fileName = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_1.0.raw";
-		String sample_frame_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_1.0.frame";
+		String sample_raw_fileName = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_0.1.raw";
+		String sample_frame_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_0.1.frame";
 		int sample_fram_nrows = 100;
 		String sample_delimiter = "\t";
-		String schema_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/imdb_1.0.schema";
+		String schema_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/imdb_0.1.schema";
 		String data_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/imdb.data";
 
 		Util util = new Util();
@@ -267,36 +267,15 @@ public class FrameGenerateReaderJSONTest extends GenerateReaderFrameTest {
 		//gr.getReader();
 
 		//FrameReader fr = new GIOFrameReader(gr.getProperties());
+		double tmpTime = System.nanoTime();
 		FrameBlock frameBlock = fr.readFrameFromHDFS(data_file_name, gr.getProperties().getSchema(), -1, gr.getProperties().getSchema().length);
+		double readTime = (System.nanoTime() - tmpTime) / 1000000000.0;
+		System.out.println(readTime);
 		//break;
 	}
 
 	@Test
 	public void test9() throws Exception {
-
-
-//		String sample_raw_fileName = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_1.0.raw";
-//		String sample_frame_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/sample_100_1.0.frame";
-//		int sample_fram_nrows = 100;
-//		String sample_delimiter = "\t";
-//		String schema_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/imdb_1.0.schema";
-//		String data_file_name = "/media/sfathollahzadeh/Windows1/saeedData/NestedDatasets/imdb/imdb.data";
-//
-//		Util util = new Util();
-//		Types.ValueType[] sampleSchema = util.getSchema(schema_file_name);
-//		int ncols = sampleSchema.length;
-//		FrameBlock sampleFrame = new FrameBlock(sampleSchema, util.loadFrameData(sample_frame_file_name, sample_fram_nrows, ncols, sample_delimiter));
-//
-//		String sampleRaw = util.readEntireTextFile(sample_raw_fileName);
-//		GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame);
-//
-//		String baseFileName = "/home/sfathollahzadeh/Documents/GitHub/papers/2022-vldb-GIO/Experiments/benchmark/RapidJSONCPP/src/at/tugraz/";
-//		String sourceFileName = baseFileName + "source/FrameReaderGIO_100.cpp";
-//		String headerFileName = baseFileName + "header/FrameReaderGIO_100.h";
-//
-//		gr.getReaderRapidJSON("FrameReaderGIO_100", sourceFileName, headerFileName);
-
-		//-------------------------------
 		String[] percentS = {"10", "20", "30","40","50","60","70","80","90","100"};
 		for(int i=0;i<10;i++) {
 			String[] percentF = new String[] {"0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0"};
