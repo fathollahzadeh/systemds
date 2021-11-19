@@ -24,35 +24,26 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 
-class TrieNode {
-	private final Map<Character, TrieNode> children = new HashMap<>();
-	private boolean endOfWord;
+public class MappingTrieNodeString {
+	private Map<String, MappingTrieNodeString> children = new HashMap<>();
 	private ArrayList<Integer> rowIndexes;
 	private BitSet rowIndexesBitSet;
 
-	public TrieNode() {
+	public MappingTrieNodeString() {
 		rowIndexes = new ArrayList<>();
 		rowIndexesBitSet = new BitSet();
 	}
 
-	public void addRowIndex(int rowIndex){
+	public void addRowIndex(int rowIndex) {
 		rowIndexes.add(rowIndex);
 	}
 
-	Map<Character, TrieNode> getChildren() {
+	public Map<String, MappingTrieNodeString> getChildren() {
 		return children;
 	}
 
-	boolean isEndOfWord() {
-		return endOfWord;
-	}
-
-	void setEndOfWord(boolean endOfWord) {
-		this.endOfWord = endOfWord;
-	}
-
 	public int getRowIndex() {
-		for(int i=0; i<rowIndexes.size(); i++){
+		for(int i = 0; i < rowIndexes.size(); i++) {
 			int index = rowIndexes.get(i);
 			if(!rowIndexesBitSet.get(index))
 				return index;
@@ -60,7 +51,19 @@ class TrieNode {
 		return -1;
 	}
 
-	public void setRowIndexUsed(int rowIndex){
+	public void setRowIndexUsed(int rowIndex) {
 		this.rowIndexesBitSet.set(rowIndex);
+	}
+
+	public void setChildren(Map<String, MappingTrieNodeString> children) {
+		this.children = children;
+	}
+
+	public void setRowIndexes(ArrayList<Integer> rowIndexes) {
+		this.rowIndexes = rowIndexes;
+	}
+
+	public ArrayList<Integer> getRowIndexes() {
+		return rowIndexes;
 	}
 }

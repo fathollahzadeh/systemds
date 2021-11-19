@@ -51,9 +51,9 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 	protected ValueTrimFormat[][] VTF;
 	protected ValueTrimFormat[][] VTFClone = null;
 
-	protected Trie suffixTrie;
-	//protected Trie prefixTrie;
+	protected MappingTrieString suffixMappingTrie;
 	protected ArrayList<Integer> rowTextSize;
+	protected long nns;
 
 	public ReaderMappingFlat(String raw) throws Exception {
 		InputStream is = IOUtilFunctions.toInputStream(raw);
@@ -61,23 +61,27 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 		String value;
 		int nlines = 0;
 		sampleRawRows = new ArrayList<>();
-		suffixTrie = new Trie();
-		//prefixTrie = new Trie();
-		rowTextSize = new ArrayList<>();
 		while((value = br.readLine()) != null) {
 			sampleRawRows.add(new RawRow(value));
-			//prefixTrie.insert(value, nlines);
-
-			StringBuilder sbr = new StringBuilder();
-			sbr.append(value);
-			suffixTrie.insert(sbr.reverse().toString(), nlines);
-			rowTextSize.add(value.length());
-
 			nlines++;
 		}
 		this.nlines = nlines;
 		firstColIndex = 0;
 		firstRowIndex = 0;
+		nns = 0;
+	}
+
+	protected void addPrefixTree(){
+		suffixMappingTrie = new MappingTrieString();
+		rowTextSize = new ArrayList<>();
+		int line = 0;
+		for(RawRow rr: sampleRawRows) {
+			StringBuilder sbr = new StringBuilder();
+			sbr.append(rr.getRaw());
+			suffixMappingTrie.insert(sbr.reverse().toString(), line);
+			rowTextSize.add(rr.getRaw().length());
+			line++;
+		}
 	}
 
 	protected abstract boolean isSchemaNumeric();
@@ -149,6 +153,8 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 			for(int r = 0; r < nrows; r++)
 				for(int c = 0; c < ncols; c++) {
 					result[r][c] = new ValueTrimFormat(c, Types.ValueType.FP64, sampleMatrix.getValue(r, c));
+					if(!result[r][c].isNotSet())
+						nns++;
 				}
 			return result;
 		}
@@ -182,6 +188,8 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 			for(int r = 0; r < nrows; r++)
 				for(int c = 0; c < ncols; c++) {
 					result[r][c] = new ValueTrimFormat(c, schema[c], sampleFrame.get(r, c));
+					if(!result[r][c].isNotSet())
+						nns++;
 				}
 			return result;
 		}
@@ -196,7 +204,7 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 
 	public void runMapping() throws Exception {
 
-		mapped = findMapping2();
+		mapped = findMapping();
 		boolean schemaNumeric = isSchemaNumeric();
 		if(!mapped) {
 			// Clone Sample Matrix/Frame
@@ -225,14 +233,14 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 				// Lower Triangular
 				isUpperTriangular = false;
 				transferSampleTriangular(isUpperTriangular);
-				mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+				mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 
 				// Upper Triangular
 				if(!mapped) {
 					isUpperTriangular = true;
 					retrieveSample();
 					transferSampleTriangular(isUpperTriangular);
-					mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+					mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 				}
 			}
 			// Skew-Symmetric check:
@@ -240,13 +248,13 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 				// Lower Triangular
 				isUpperTriangular = false;
 				transferSampleTriangular(isUpperTriangular);
-				mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+				mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 
 				// Lower Triangular Skew
 				if(!mapped) {
 					skewCoefficient = -1;
 					transferSampleSkew(skewCoefficient);
-					mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+					mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 				}
 
 				// Upper Triangular
@@ -255,19 +263,30 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 					skewCoefficient = 1;
 					retrieveSample();
 					transferSampleTriangular(isUpperTriangular);
-					mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+					mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 				}
 				// Upper Triangular Skew
 				if(!mapped) {
 					skewCoefficient = -1;
 					transferSampleSkew(skewCoefficient);
-					mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+					mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 				}
 			}
 		}
 	}
 
-	protected boolean findMapping2() {
+	protected boolean findMapping(){
+		return findMapping(1.0f);
+	}
+	protected boolean findMapping(float coefficient){
+		if(nns * coefficient == nlines) {
+			addPrefixTree();
+			return findMappingWithPrefixTree();
+		}
+		else
+			return findMappingWithLineByLineScan();
+	}
+	protected boolean findMappingWithPrefixTree() {
 
 		mapRow = new int[nrows][ncols];
 		mapCol = new int[nrows][ncols];
@@ -296,7 +315,7 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 				String word = sbWord.reverse().toString();
 				if(word.startsWith("0."))
 					word = word.substring(2);
-				itRow = suffixTrie.containsStringAndSet(word);
+				itRow = suffixMappingTrie.containsStringAndSet(word);
 				if(itRow!=-1){
 					mapRow[r][c] = itRow;
 					mapCol[r][c] = rowTextSize.get(itRow) - word.length();
@@ -328,7 +347,7 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 		return flagMap;
 	}
 
-	protected boolean findMapping() {
+	protected boolean findMappingWithLineByLineScan() {
 		mapRow = new int[nrows][ncols];
 		mapCol = new int[nrows][ncols];
 

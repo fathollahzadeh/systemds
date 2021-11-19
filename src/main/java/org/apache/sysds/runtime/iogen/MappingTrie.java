@@ -19,28 +19,28 @@
 
 package org.apache.sysds.runtime.iogen;
 
-class Trie {
-	private TrieNode root;
+public class MappingTrie {
+	private MappingTrieNode root;
 
-	Trie() {
-		root = new TrieNode();
+	public MappingTrie() {
+		root = new MappingTrieNode();
 	}
 
-	void insert(String word, int rowIndex) {
-		TrieNode current = root;
+	public void insert(String word, int rowIndex) {
+		MappingTrieNode current = root;
 
 		for(char l : word.toCharArray()) {
-			current = current.getChildren().computeIfAbsent(l, c -> new TrieNode());
+			current = current.getChildren().computeIfAbsent(l, c -> new MappingTrieNode());
 			current.addRowIndex(rowIndex);
 		}
 		current.setEndOfWord(true);
 	}
 
-	TrieNode containsString(String word) {
-		TrieNode current = root;
+	public MappingTrieNode containsString(String word) {
+		MappingTrieNode current = root;
 		for(int i = 0; i < word.length(); i++) {
 			char ch = word.charAt(i);
-			TrieNode node = current.getChildren().get(ch);
+			MappingTrieNode node = current.getChildren().get(ch);
 			if(node == null) {
 				return null;
 			}
@@ -49,8 +49,8 @@ class Trie {
 		return current;
 	}
 
-	int containsStringAndSet(String word) {
-		TrieNode result = containsString(word);
+	public int containsStringAndSet(String word) {
+		MappingTrieNode result = containsString(word);
 		int rowIndex =  -1;
 		if(result!=null) {
 			rowIndex = result.getRowIndex();
