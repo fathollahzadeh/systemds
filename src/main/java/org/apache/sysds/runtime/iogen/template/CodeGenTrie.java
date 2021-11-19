@@ -19,29 +19,23 @@
 
 package org.apache.sysds.runtime.iogen.template;
 
-import org.apache.sysds.runtime.iogen.CustomProperties;
+import org.apache.sysds.common.Types;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+public class CodeGenTrie {
 
-public abstract class TemplateBase {
+	public CodeGenTrieNode root;
 
-	protected CustomProperties _props;
-
-	public TemplateBase(CustomProperties _props) {
-		this._props = _props;
+	public CodeGenTrie() {
+		root = new CodeGenTrieNode(-1, "ROOT");
 	}
 
-	public abstract String getFrameReaderCode() ;
-
-	protected void saveCode(String fileName, String code) {
-		try(Writer writer = new BufferedWriter(
-			new OutputStreamWriter(new FileOutputStream(fileName, false), "utf-8"))) {
-			writer.write(code);
+	public void insert(String condition, int colIndex, Types.ValueType valueType) {
+		CodeGenTrieNode current = root;
+		String[] conditionLevels = condition.split("\\.");
+		for(String cl : conditionLevels) {
+			current = current.getChildren().computeIfAbsent(cl, c -> new CodeGenTrieNode(colIndex, cl));
 		}
-		catch(Exception ex) {
-		}
+		current.setEndOfCondition(true);
+		current.setValueType(valueType);
 	}
 }

@@ -45,7 +45,10 @@ import java.util.Set;
 public abstract class FrameGenerateReader extends FrameReader {
 
 	protected CustomProperties _props;
-	protected final FastStringTokenizer fastStringTokenizerDelim;
+	protected FastStringTokenizer fastStringTokenizerDelim;
+
+	public FrameGenerateReader() {
+	}
 
 	public FrameGenerateReader(CustomProperties _props) {
 		this._props = _props;

@@ -21,9 +21,11 @@ package org.apache.sysds.runtime.iogen;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.sysds.runtime.codegen.CodegenUtils;
 import org.apache.sysds.runtime.io.MatrixReader;
 import org.apache.sysds.runtime.io.FrameReader;
-import org.apache.sysds.runtime.iogen.template.rapidjson.TemplateRapidJSON;
+import org.apache.sysds.runtime.iogen.template.TemplateJavaJSON;
+import org.apache.sysds.runtime.iogen.template.TemplateCPPRapidJSON;
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
 import org.apache.sysds.runtime.matrix.data.MatrixBlock;
 
@@ -44,14 +46,15 @@ public abstract class GenerateReader {
 
 	protected static ReaderMapping readerMapping;
 	protected static boolean nested;
-	public static  CustomProperties properties;
+	public static CustomProperties properties;
 
 	public GenerateReader(SampleProperties sampleProperties) throws Exception {
 
 		nested = sampleProperties.isNested();
 		if(nested) {
 			readerMapping = sampleProperties.getDataType().isMatrix() ? new ReaderMappingJSON.MatrixReaderMapping(
-				sampleProperties.getSampleRaw(),sampleProperties.getSampleMatrix()) : new ReaderMappingJSON.FrameReaderMapping(
+				sampleProperties.getSampleRaw(),
+				sampleProperties.getSampleMatrix()) : new ReaderMappingJSON.FrameReaderMapping(
 				sampleProperties.getSampleRaw(), sampleProperties.getSampleFrame());
 		}
 		else {
@@ -121,7 +124,8 @@ public abstract class GenerateReader {
 			super(new SampleProperties(sampleRaw, sampleFrame));
 		}
 
-		public void getReader(String className, String sourceFileName, String headerFileName) throws Exception {
+		public void getReaderRapidJSON(String className, String sourceFileName, String headerFileName)
+			throws Exception {
 			// 1. Identify file format:
 			boolean isMapped = readerMapping != null && readerMapping.isMapped();
 			if(!isMapped) {
@@ -132,11 +136,12 @@ public abstract class GenerateReader {
 				throw new Exception("The file format couldn't recognize!!");
 			}
 
-			TemplateRapidJSON rapidJSON = new TemplateRapidJSON(properties);
-			rapidJSON.getFrameReaderCode(className, sourceFileName, headerFileName);
+			TemplateCPPRapidJSON rapidJSON = new TemplateCPPRapidJSON(properties, className, sourceFileName, headerFileName);
+			rapidJSON.getFrameReaderCode();
 
 		}
-		public FrameReader getReader() throws Exception {
+
+		public FrameReader getReader(boolean codeGen) throws Exception {
 
 			// 1. Identify file format:
 			boolean isMapped = readerMapping != null && readerMapping.isMapped();
@@ -169,7 +174,17 @@ public abstract class GenerateReader {
 				return frameReader;
 			}
 			else {
-				return frameReader = new FrameGenerateReader.FrameReaderJSON(properties);
+				if(codeGen) {
+					String className = "GIOFrameReader";
+					TemplateJavaJSON src = new TemplateJavaJSON(properties, className);
+					frameReader = (FrameReader) CodegenUtils.compileClass(className, src.getFrameReaderCode())
+						.getDeclaredConstructor().newInstance();
+				}
+				else
+					frameReader = new FrameGenerateReader.FrameReaderJSON(properties);
+
+				return frameReader;
+
 			}
 		}
 	}
