@@ -51,6 +51,10 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 	protected ValueTrimFormat[][] VTF;
 	protected ValueTrimFormat[][] VTFClone = null;
 
+	protected MappingTrieString suffixMappingTrie;
+	protected ArrayList<Integer> rowTextSize;
+	protected long nns;
+
 	public ReaderMappingFlat(String raw) throws Exception {
 		InputStream is = IOUtilFunctions.toInputStream(raw);
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -64,6 +68,20 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 		this.nlines = nlines;
 		firstColIndex = 0;
 		firstRowIndex = 0;
+		nns = 0;
+	}
+
+	protected void addPrefixTree(){
+		suffixMappingTrie = new MappingTrieString();
+		rowTextSize = new ArrayList<>();
+		int line = 0;
+		for(RawRow rr: sampleRawRows) {
+			StringBuilder sbr = new StringBuilder();
+			sbr.append(rr.getRaw());
+			suffixMappingTrie.insert(sbr.reverse().toString(), line);
+			rowTextSize.add(rr.getRaw().length());
+			line++;
+		}
 	}
 
 	protected abstract boolean isSchemaNumeric();
@@ -135,6 +153,8 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 			for(int r = 0; r < nrows; r++)
 				for(int c = 0; c < ncols; c++) {
 					result[r][c] = new ValueTrimFormat(c, Types.ValueType.FP64, sampleMatrix.getValue(r, c));
+					if(!result[r][c].isNotSet())
+						nns++;
 				}
 			return result;
 		}
@@ -168,6 +188,8 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 			for(int r = 0; r < nrows; r++)
 				for(int c = 0; c < ncols; c++) {
 					result[r][c] = new ValueTrimFormat(c, schema[c], sampleFrame.get(r, c));
+					if(!result[r][c].isNotSet())
+						nns++;
 				}
 			return result;
 		}
@@ -211,14 +233,14 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 				// Lower Triangular
 				isUpperTriangular = false;
 				transferSampleTriangular(isUpperTriangular);
-				mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+				mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 
 				// Upper Triangular
 				if(!mapped) {
 					isUpperTriangular = true;
 					retrieveSample();
 					transferSampleTriangular(isUpperTriangular);
-					mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+					mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 				}
 			}
 			// Skew-Symmetric check:
@@ -226,13 +248,13 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 				// Lower Triangular
 				isUpperTriangular = false;
 				transferSampleTriangular(isUpperTriangular);
-				mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+				mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 
 				// Lower Triangular Skew
 				if(!mapped) {
 					skewCoefficient = -1;
 					transferSampleSkew(skewCoefficient);
-					mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+					mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 				}
 
 				// Upper Triangular
@@ -241,19 +263,91 @@ public abstract class ReaderMappingFlat extends ReaderMapping {
 					skewCoefficient = 1;
 					retrieveSample();
 					transferSampleTriangular(isUpperTriangular);
-					mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+					mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 				}
 				// Upper Triangular Skew
 				if(!mapped) {
 					skewCoefficient = -1;
 					transferSampleSkew(skewCoefficient);
-					mapped = isRR ? findMapping() : findMapping() && verifyRISymmetricMapping(isUpperTriangular);
+					mapped = isRR ? findMapping(0.5f) : findMapping(0.5f) && verifyRISymmetricMapping(isUpperTriangular);
 				}
 			}
 		}
 	}
 
-	protected boolean findMapping() {
+	protected boolean findMapping(){
+		return findMapping(1.0f);
+	}
+	protected boolean findMapping(float coefficient){
+		if(nns * coefficient == nlines) {
+			addPrefixTree();
+			return findMappingWithPrefixTree();
+		}
+		else
+			return findMappingWithLineByLineScan();
+	}
+	protected boolean findMappingWithPrefixTree() {
+
+		mapRow = new int[nrows][ncols];
+		mapCol = new int[nrows][ncols];
+
+		// Set "-1" as default value for all defined matrix
+		for(int r = 0; r < nrows; r++)
+			for(int c = 0; c < ncols; c++)
+				mapRow[r][c] = mapCol[r][c] = -1;
+
+		for(int i = 0; i < nlines; i++) {
+			sampleRawRows.get(i).resetReserved();
+		}
+		int itRow = 0;
+		for(int r = 0; r < nrows; r++) {
+			ArrayList<ValueTrimFormat> vtfRow = new ArrayList<>();
+			for(int i = 0; i < ncols; i++) {
+				if(!VTF[r][i].isNotSet())
+					vtfRow.add(VTF[r][i]);
+			}
+			Collections.sort(vtfRow);
+
+			for(ValueTrimFormat vtf : vtfRow) {
+				int c = vtf.getColIndex();
+				StringBuilder sbWord = new StringBuilder();
+				sbWord.append(vtf.getStringOfActualValue());
+				String word = sbWord.reverse().toString();
+				if(word.startsWith("0."))
+					word = word.substring(2);
+				itRow = suffixMappingTrie.containsStringAndSet(word);
+				if(itRow!=-1){
+					mapRow[r][c] = itRow;
+					mapCol[r][c] = rowTextSize.get(itRow) - word.length();
+				}
+//				HashSet<Integer> checkedLines = new HashSet<>();
+//				while(checkedLines.size() < nlines) {
+//					RawRow row = sampleRawRows.get(itRow);
+//					Pair<Integer, Integer> mi = row.findValue(vtf, false);
+//					if(mi.getKey() != -1) {
+//						mapRow[r][c] = itRow;
+//						mapCol[r][c] = mi.getKey();
+//						break;
+//					}
+//					else {
+//						checkedLines.add(itRow);
+//						itRow++;
+//						if(itRow == nlines)
+//							itRow = 0;
+//					}
+//				}
+			}
+		}
+		boolean flagMap = true;
+		for(int r = 0; r < nrows && flagMap; r++)
+			for(int c = 0; c < ncols && flagMap; c++)
+				if(mapRow[r][c] == -1 && !VTF[r][c].isNotSet()) {
+					flagMap = false;
+				}
+		return flagMap;
+	}
+
+	protected boolean findMappingWithLineByLineScan() {
 		mapRow = new int[nrows][ncols];
 		mapCol = new int[nrows][ncols];
 
