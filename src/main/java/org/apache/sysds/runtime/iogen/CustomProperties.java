@@ -19,110 +19,65 @@
 
 package org.apache.sysds.runtime.iogen;
 
-import org.apache.sysds.common.Types;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.sysds.runtime.io.FileFormatProperties;
+
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashSet;
 
 public class CustomProperties extends FileFormatProperties implements Serializable {
+	private static final Log LOG = LogFactory.getLog(CustomProperties.class.getName());
+	private static final long serialVersionUID = -4447926749068752721L;
 
-	private MappingProperties mappingProperties;
-	private RowIndexStructure rowIndexStructure;
-	private ColIndexStructure colIndexStructure;
-	private KeyTrie[] colKeyPatterns;
-	private KeyTrie valueKeyPattern;
-	private Types.ValueType[] schema;
-	private int ncols;
-	private boolean sparse;
-	private boolean parallel;
+	public enum IndexProperties {
+		IDENTIFY, PREFIX, KEY;
 
-	public CustomProperties(MappingProperties mappingProperties, RowIndexStructure rowIndexStructure, ColIndexStructure colIndexStructure) {
-		this.mappingProperties = mappingProperties;
-		this.rowIndexStructure = rowIndexStructure;
-		this.colIndexStructure = colIndexStructure;
-	}
-
-	public MappingProperties getMappingProperties() {
-		return mappingProperties;
-	}
-
-	public void setMappingProperties(MappingProperties mappingProperties) {
-		this.mappingProperties = mappingProperties;
-	}
-
-	public RowIndexStructure getRowIndexStructure() {
-		return rowIndexStructure;
-	}
-
-	public void setRowIndexStructure(RowIndexStructure rowIndexStructure) {
-		this.rowIndexStructure = rowIndexStructure;
-	}
-
-	public ColIndexStructure getColIndexStructure() {
-		return colIndexStructure;
-	}
-
-	public void setColIndexStructure(ColIndexStructure colIndexStructure) {
-		this.colIndexStructure = colIndexStructure;
-	}
-
-	public KeyTrie[] getColKeyPatterns() {
-		return colKeyPatterns;
-	}
-
-	public void setColKeyPatterns(KeyTrie[] colKeyPatterns) {
-		this.colKeyPatterns = colKeyPatterns;
-	}
-
-	public Types.ValueType[] getSchema() {
-		return schema;
-	}
-
-	public void setSchema(Types.ValueType[] schema) {
-		this.schema = schema;
-	}
-
-	public HashSet<String>[] endWithValueStrings() {
-		if(colKeyPatterns !=null) {
-			HashSet<String>[] endWithValueString = new HashSet[colKeyPatterns.length];
-			for(int i = 0; i < colKeyPatterns.length; i++)
-				if(colKeyPatterns[i] != null)
-					endWithValueString[i] = colKeyPatterns[i].getFirstSuffixKeyPatterns();
-			return endWithValueString;
+		@Override public String toString() {
+			return this.name().toUpperCase();
 		}
-		else
-			return null;
 	}
 
-	public KeyTrie getValueKeyPattern() {
-		return valueKeyPattern;
+	private  ArrayList<String>[] colKeyPattern;
+	private HashSet<String>[] endWithValueString;
+	private IndexProperties rowIndex;
+	private IndexProperties colIndex;
+
+	public CustomProperties(ArrayList<String>[] colKeyPattern, HashSet<String>[] endWithValueString) {
+		this.colKeyPattern = colKeyPattern;
+		this.endWithValueString = endWithValueString;
 	}
 
-	public void setValueKeyPattern(KeyTrie valueKeyPattern) {
-		this.valueKeyPattern = valueKeyPattern;
+	public ArrayList<String>[] getColKeyPattern() {
+		return colKeyPattern;
 	}
 
-	public int getNcols() {
-		return ncols;
+	public void setColKeyPattern(ArrayList<String>[] colKeyPattern) {
+		this.colKeyPattern = colKeyPattern;
 	}
 
-	public void setNcols(int ncols) {
-		this.ncols = ncols;
+	public HashSet<String>[] getEndWithValueString() {
+		return endWithValueString;
 	}
 
-	public boolean isSparse() {
-		return sparse;
+	public void setEndWithValueString(HashSet<String>[] endWithValueString) {
+		this.endWithValueString = endWithValueString;
 	}
 
-	public void setSparse(boolean sparse) {
-		this.sparse = sparse;
+	public IndexProperties getRowIndex() {
+		return rowIndex;
 	}
 
-	public boolean isParallel() {
-		return parallel;
+	public void setRowIndex(IndexProperties rowIndex) {
+		this.rowIndex = rowIndex;
 	}
 
-	public void setParallel(boolean parallel) {
-		this.parallel = parallel;
+	public IndexProperties getColIndex() {
+		return colIndex;
+	}
+
+	public void setColIndex(IndexProperties colIndex) {
+		this.colIndex = colIndex;
 	}
 }

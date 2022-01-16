@@ -20,146 +20,114 @@
 package org.apache.sysds.runtime.iogen.codegen;
 
 import org.apache.sysds.common.Types;
+import org.apache.sysds.runtime.iogen.MappingTrieNode;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 
 public class CodeGenTrieNode {
 
-	public enum NodeType {
-		VALUE, ROW, COL, INDEX;
-
-		@Override public String toString() {
-			return this.name().toUpperCase();
-		}
-	}
-
 	private final Map<String, CodeGenTrieNode> children = new HashMap<>();
 	private boolean endOfCondition;
-	private String colIndex;
+	private int colIndex;
 	private Types.ValueType valueType;
+	private HashSet<String> endWithValueString;
 	private String key;
 	private HashSet<String> naStrings;
-	private final NodeType type;
-	private int rowIndexBeginPos;
-	private int colIndexBeginPos;
 
-	public CodeGenTrieNode(NodeType type) {
+	public CodeGenTrieNode() {
 		this.endOfCondition = false;
-		this.type = type;
 	}
 
-	public CodeGenTrieNode(String colIndex, String key, NodeType type) {
+	public CodeGenTrieNode(int colIndex, String key) {
 		this.colIndex = colIndex;
 		this.key = key;
-		this.type = type;
 	}
 
-	public CodeGenTrieNode(boolean endOfCondition, String colIndex, Types.ValueType valueType, String key, HashSet<String> naStrings, NodeType type) {
+	public CodeGenTrieNode(boolean endOfCondition, int colIndex, Types.ValueType valueType, String key, HashSet<String> endWithValueString, HashSet<String> naStrings) {
 		this.endOfCondition = endOfCondition;
 		this.colIndex = colIndex;
 		this.valueType = valueType;
 		this.key = key;
-		if(endOfCondition) {
+		if(endOfCondition){
+			this.endWithValueString = endWithValueString;
 			this.naStrings = naStrings;
 		}
-		this.type = type;
+
 	}
 
-	public String geValueCode(String destination, String currPos) {
-		if(this.type == NodeType.INDEX)
-			return this.getIndexCode(currPos);
-		else
-			return this.getColValueCode(destination, currPos);
-	}
+	public String geValueCode(String destination, String currPos){
 
-	private String getIndexCode(String currPos) {
 		StringBuilder src = new StringBuilder();
 		String subStr;
-		String ewvs;
-		if(this.colIndex.equals("0"))
-			ewvs = "endWithValueStringRow";
-		else
-			ewvs = "endWithValueStringCol";
 
-		src.append("endPos = TemplateUtil.getEndPos(str, strLen, " + currPos + "," + ewvs + "); \n");
-		subStr = "str.substring(" + currPos + ",endPos)";
-		src.append("try{ \n");
-		if(this.colIndex.equals("0")) {
-			if(rowIndexBeginPos > 0)
-				src.append("row = ").append("Integer.parseInt(" + subStr + ") - " + rowIndexBeginPos + "; \n");
+		if(this.endWithValueString.size() == 1) {
+			String delim = this.endWithValueString.iterator().next();
+			if(delim.length() > 0)
+				subStr = "str.substring("+currPos+", str.indexOf(\""+delim+"\", "+currPos+"))";
 			else
-				src.append("row = ").append("Integer.parseInt(" + subStr + "); \n");
+				subStr = "str.substring("+currPos+")";
 		}
 		else {
-			if(colIndexBeginPos > 0)
-				src.append("col = ").append("Integer.parseInt(" + subStr + ") - " + colIndexBeginPos + "; \n");
-			else
-				src.append("col = ").append("Integer.parseInt(" + subStr + "); \n");
+			int i = 0;
+			for(String d: this.endWithValueString){
+				if(i == 0) {
+					if(d.length() == 0)
+						src.append("endPos = strLen; \n");
+					else
+						src.append("endPos = str.indexOf(\"" + d + "\", "+currPos+"); \n");
+				}
+				else {
+					if(d.length() == 0)
+						src.append("endPos = Math.min(strLen, endPos); \n");
+					else
+						src.append("endPos = Math.min(endPos, str.indexOf(\"" + d + "\", "+currPos+")); \n");
+				}
+				i++;
+			}
+			subStr = "str.substring(currPos, endPos)";
 		}
-		src.append("} catch(Exception e){} \n");
-		return src.toString();
-	}
-
-
-	private String getColValueCode(String destination, String currPos) {
-
-		StringBuilder src = new StringBuilder();
-		if(this.colIndex.equals("col"))
-			src.append("endPos = TemplateUtil.getEndPos(str, strLen, " + currPos + ", endWithValueStringVal); \n");
-		else
-			src.append("endPos = TemplateUtil.getEndPos(str, strLen, " + currPos + ", endWithValueString[" + colIndex + "]); \n");
-
-		src.append("String cellStr" + colIndex + " = str.substring(" + currPos + ",endPos); \n");
-
 		if(valueType.isNumeric()) {
-			src.append("if ( cellStr" + colIndex + ".length() > 0 ){\n");
-			src.append(getParsCode("cellStr" + colIndex));
-			src.append("if(cellValue" + colIndex + " != 0) { \n");
-			src.append(destination).append("(row, " + colIndex + ", cellValue" + colIndex + "); \n");
+			src.append(getParsCode(subStr));
+			src.append("if(cellValue"+colIndex+" != 0) { \n");
+			src.append(destination).append("(row, " + colIndex + ", cellValue"+colIndex+"); \n");
 			src.append("lnnz++;\n");
 			src.append("}\n");
-			src.append("}\n");
 		}
-		else if(valueType == Types.ValueType.STRING || valueType == Types.ValueType.BOOLEAN) {
-			if(naStrings != null && naStrings.size() > 0) {
+		else if(valueType == Types.ValueType.STRING || valueType == Types.ValueType.BOOLEAN){
+			if(naStrings.size() > 0) {
 				StringBuilder sb = new StringBuilder();
 				sb.append("if(");
 				for(String na : naStrings) {
 					src.append("naStrings.contains(\"" + na + "\")").append("|| \n");
 				}
-				sb.delete(sb.length() - 2, sb.length());
+				sb.delete(sb.length()-2, sb.length());
 				sb.append("){ \n");
-				sb.append("cellValue+" + colIndex + " = null;");
+				sb.append("cellValue+"+colIndex+" = null;");
 				sb.append("}\n");
 			}
 			else
-				src.append(getParsCode("cellStr" + colIndex));
-			src.append(destination).append("(row, " + colIndex + ", cellValue" + colIndex + "); \n");
+				src.append(getParsCode(subStr));
+			src.append(destination).append("(row, " + colIndex + ", cellValue+"+colIndex+"); \n");
 		}
 		return src.toString();
 	}
 
 	private String getParsCode(String subStr) {
-		String cellValue = "cellValue" + colIndex;
-		switch(valueType) {
-			case STRING:
-				return "String " + cellValue + " = " + subStr + "; \n";
-			case BOOLEAN:
-				return "Boolean " + cellValue + "; \n try{ " + cellValue + "= Boolean.parseBoolean(" + subStr + ");} catch(Exception e){" + cellValue + "=false;} \n";
-			case INT32:
-				return "Integer " + cellValue + "; \n try{ " + cellValue + "= Integer.parseInt(" + subStr + ");} catch(Exception e){" + cellValue + " = 0;} \n";
-			case INT64:
-				return "Long " + cellValue + "; \n try{" + cellValue + "= Long.parseLong(" + subStr + "); } catch(Exception e){" + cellValue + " = 0l;} \n";
-			case FP64:
-				return "Double " + cellValue + "; \n try{ " + cellValue + "= Double.parseDouble(" + subStr + "); } catch(Exception e){" + cellValue + " = 0d;}\n";
-			case FP32:
-				return "Float " + cellValue + "; \n try{ " + cellValue + "= Float.parseFloat(" + subStr + ");} catch(Exception e){" + cellValue + " = 0f;} \n";
-			default:
-				throw new RuntimeException("Unsupported value type: " + valueType);
+		switch(valueType ) {
+			case STRING:  return "String cellValue"+colIndex+" = "+subStr+"; \n";
+			case BOOLEAN: return "Boolean cellValue"+colIndex+" = Boolean.parseBoolean("+subStr+"); \n";
+			case INT32:   return "Integer cellValue"+colIndex+" = Integer.parseInt("+subStr+"); \n";
+			case INT64:   return "Long cellValue"+colIndex+" = Long.parseLong("+subStr+"); \n";
+			case FP64:    return "Float cellValue"+colIndex+" = Double.parseDouble("+subStr+"); \n";
+			case FP32:    return "Double cellValue"+colIndex+" = Float.parseFloat("+subStr+"); \n";
+			default: throw new RuntimeException("Unsupported value type: "+valueType);
 		}
 	}
+
 
 	public Map<String, CodeGenTrieNode> getChildren() {
 		return children;
@@ -173,11 +141,11 @@ public class CodeGenTrieNode {
 		this.endOfCondition = endOfCondition;
 	}
 
-	public String getColIndex() {
+	public int getColIndex() {
 		return colIndex;
 	}
 
-	public void setColIndex(String colIndex) {
+	public void setColIndex(int colIndex) {
 		this.colIndex = colIndex;
 	}
 
@@ -195,25 +163,5 @@ public class CodeGenTrieNode {
 
 	public void setKey(String key) {
 		this.key = key;
-	}
-
-	public NodeType getType() {
-		return type;
-	}
-
-	public int getRowIndexBeginPos() {
-		return rowIndexBeginPos;
-	}
-
-	public void setRowIndexBeginPos(int rowIndexBeginPos) {
-		this.rowIndexBeginPos = rowIndexBeginPos;
-	}
-
-	public int getColIndexBeginPos() {
-		return colIndexBeginPos;
-	}
-
-	public void setColIndexBeginPos(int colIndexBeginPos) {
-		this.colIndexBeginPos = colIndexBeginPos;
 	}
 }
