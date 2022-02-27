@@ -21,8 +21,6 @@ package org.apache.sysds.test.functions.iogen;
 
 import org.junit.Test;
 
-import java.util.Random;
-
 public class MatrixSingleRowFlatTest extends GenerateReaderMatrixTest {
 
 	private final static String TEST_NAME = "MatrixSingleRowFlatTest";
@@ -160,48 +158,5 @@ public class MatrixSingleRowFlatTest extends GenerateReaderMatrixTest {
 		sampleRaw = "1,1,10\n" + "1,2,20\n" + "1,3,30\n" + "1,4,40\n" + "2,2,20\n" + "2,3,30\n" + "2,4,40\n" + "3,3,30\n" + "3,4,40\n" + "4,4,40\n";
 		sampleMatrix = new double[][] {{10, 20, 30, 40}, {0, 20, 30, 40}, {0, 0, 30, 40}, {0, 0, 0, 40}};
 		runGenerateReaderTest(false);
-	}
-
-
-	public static int getRandomNumber() {
-		Random r = new Random();
-		int low = 0;
-		int high = 100000000;
-		int result = r.nextInt(high - low) + low;
-		return result;
-	}
-
-	@Test
-	public void test15() {
-
-		Integer[][] data = new Integer[1000][33554432];
-
-//		for(int i=0;i<1000;i++){
-//			for(int j=Math.max(i-5,0);j<=i;j++)
-//				data[i][j] = getRandomNumber();
-//		}
-//		StringBuilder sb = new StringBuilder();
-//
-//		int r=2;
-//		int c=1000000;
-//		sampleMatrix = new double[r][c];
-//		for(int i=0;i<r;i++) {
-////			for(int j=0;j<c;j+=5){
-////				for(int k=j;k<Math.min(c,j+5);k++){
-////					int rn = getRandomNumber();
-////					sb.append(i).append(",").append(k).append(",").append(rn).append("\n");
-////					sampleMatrix[i][k] = rn;
-////				}
-////			}
-////
-//			for(int j = 0; j < c; j++) {
-//				int rn = getRandomNumber();
-//				sb.append(i).append(",").append(j).append(",").append(rn).append("\n");
-//				sampleMatrix[i][j] = rn;
-//			}
-//		}
-//		sampleRaw = sb.toString();
-//
-//		runGenerateReaderTest();
 	}
 }
