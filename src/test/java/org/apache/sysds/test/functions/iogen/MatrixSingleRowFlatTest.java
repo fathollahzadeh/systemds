@@ -159,4 +159,12 @@ public class MatrixSingleRowFlatTest extends GenerateReaderMatrixTest {
 		sampleMatrix = new double[][] {{10, 20, 30, 40}, {0, 20, 30, 40}, {0, 0, 30, 40}, {0, 0, 0, 40}};
 		runGenerateReaderTest(false);
 	}
+
+	//symmetric-lower
+	@Test
+	public void test21() {
+		sampleRaw = "1,0,0,0\n" + "2,2,0,0\n" + "3,4,3,0\n"+"4,5,6,4";
+		sampleMatrix = new double[][] {{1,2,3,4}, {2,2,4,5}, {3,4,3,6},{4,5,6,4}};
+		runGenerateReaderTest();
+	}
 }
