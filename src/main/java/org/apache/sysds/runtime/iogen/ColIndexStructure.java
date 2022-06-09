@@ -19,8 +19,6 @@
 
 package org.apache.sysds.runtime.iogen;
 
-import java.util.HashSet;
-
 public class ColIndexStructure {
 
 	public enum IndexProperties {
@@ -35,25 +33,16 @@ public class ColIndexStructure {
 	public ColIndexStructure() {
 		this.properties = null;
 		this.keyPattern = null;
-		this.colIndexBegin = 0;
+		this.colIndexBegin = "0";
 	}
 
 	private IndexProperties properties;
 	private KeyTrie keyPattern;
-	private int colIndexBegin;
+	private String colIndexBegin;
 
 	// when the index properties is CellWiseExist:
 	private String indexDelim;
 	private String valueDelim;
-
-	public HashSet<String> endWithValueStrings() {
-		if(keyPattern!=null) {
-			HashSet<String> endWithValueString = keyPattern.getFirstSuffixKeyPatterns();
-			return endWithValueString;
-		}
-		else
-			return null;
-	}
 
 	public IndexProperties getProperties() {
 		return properties;
@@ -71,12 +60,12 @@ public class ColIndexStructure {
 		this.keyPattern = keyPattern;
 	}
 
-	public int getColIndexBegin() {
+	public String getColIndexBegin() {
 		return colIndexBegin;
 	}
 
 	public void setColIndexBegin(int colIndexBegin) {
-		this.colIndexBegin = colIndexBegin;
+		this.colIndexBegin = colIndexBegin + "";
 	}
 
 	public String getIndexDelim() {

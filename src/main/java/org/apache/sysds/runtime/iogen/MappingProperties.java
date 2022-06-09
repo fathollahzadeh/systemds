@@ -94,6 +94,8 @@ public class MappingProperties {
 		this.dataProperties = DataProperties.PARTIALLYEXIST;
 	}
 
+
+
 	public void setRecordSingleLine(){
 		this.recordProperties = RecordProperties.SINGLELINE;
 	}

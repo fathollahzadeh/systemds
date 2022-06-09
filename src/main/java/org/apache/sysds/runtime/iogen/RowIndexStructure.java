@@ -19,13 +19,12 @@
 
 package org.apache.sysds.runtime.iogen;
 
-import java.util.HashSet;
-
 public class RowIndexStructure {
 
 	public enum IndexProperties {
 		Identity, // line number of sample raw data equal to the row index of matrix/frame
 		CellWiseExist, // row index of every cell values are in the sample raw data
+		CellWiseExistPatternLess, // ?
 		RowWiseExist, // index of every record in matrix/frame has an index in sample raw
 		SeqScatter; // the row index is not exist but the record scattered sequentially in multi lines
 		@Override
@@ -37,24 +36,12 @@ public class RowIndexStructure {
 	public RowIndexStructure() {
 		this.properties = null;
 		this.keyPattern = null;
-		this.rowIndexBegin = 0;
+		this.rowIndexBegin = "0";
 	}
 
 	private IndexProperties properties;
 	private KeyTrie keyPattern;
-	private int rowIndexBegin;
-
-	private String seqBeginString;
-	private String seqEndString;
-
-	public HashSet<String> endWithValueStrings() {
-		if(keyPattern!=null) {
-			HashSet<String> endWithValueString = keyPattern.getFirstSuffixKeyPatterns();
-			return endWithValueString;
-		}
-		else
-			return null;
-	}
+	private String rowIndexBegin;
 
 	public IndexProperties getProperties() {
 		return properties;
@@ -72,27 +59,13 @@ public class RowIndexStructure {
 		this.keyPattern = keyPattern;
 	}
 
-	public int getRowIndexBegin() {
+	public String getRowIndexBegin() {
 		return rowIndexBegin;
 	}
 
 	public void setRowIndexBegin(int rowIndexBegin) {
-		this.rowIndexBegin = rowIndexBegin;
+		this.rowIndexBegin = rowIndexBegin+"";
 	}
 
-	public String getSeqBeginString() {
-		return seqBeginString;
-	}
 
-	public void setSeqBeginString(String seqBeginString) {
-		this.seqBeginString = seqBeginString;
-	}
-
-	public String getSeqEndString() {
-		return seqEndString;
-	}
-
-	public void setSeqEndString(String seqEndString) {
-		this.seqEndString = seqEndString;
-	}
 }
