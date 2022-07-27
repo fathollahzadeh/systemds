@@ -19,7 +19,6 @@
 
 package org.apache.sysds.runtime.iogen.template;
 
-import com.google.gson.Gson;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -107,87 +106,69 @@ public abstract class FrameGenerateReader extends FrameReader {
 			}
 			else if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.SeqScatter) {
 				_offsets = new TemplateUtil.SplitOffsetInfos(splits.length);
-				for(int i = 0; i < splits.length; i++) {
-					TemplateUtil.SplitInfo splitInfo = new TemplateUtil.SplitInfo();
-					_offsets.setSeqOffsetPerSplit(i, splitInfo);
-					_offsets.setOffsetPerSplit(i, row);
-				}
-
 				int splitIndex = 0;
 				for(InputSplit inputSplit : splits) {
 					int nrows = 0;
-					long lastLineIndex;
-					TemplateUtil.SplitInfo splitInfo = _offsets.getSeqOffsetPerSplit(splitIndex);
-					Pair<ArrayList<Pair<Long, Integer>>, Long> tokenPair =  TemplateUtil.getTokenIndexOnMultiLineRecords(
-						inputSplit, informat, job, _props.getRowIndexStructure().getSeqBeginString());
+					TemplateUtil.SplitInfo splitInfo = new TemplateUtil.SplitInfo();
+					ArrayList<Pair<Integer, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(inputSplit, informat, job,
+						_props.getRowIndexStructure().getSeqBeginString());
 
-					ArrayList<Pair<Long, Integer>> beginIndexes = tokenPair.getKey();
-					lastLineIndex = tokenPair.getValue();
-
-					ArrayList<Pair<Long, Integer>> endIndexes;
+					ArrayList<Pair<Integer, Integer>> endIndexes;
 					int tokenLength = 0;
+					boolean diffBeginEndToken = false;
 					if(!_props.getRowIndexStructure().getSeqBeginString().equals(_props.getRowIndexStructure().getSeqEndString())) {
-						endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(inputSplit, informat, job,
-							_props.getRowIndexStructure().getSeqEndString()).getKey();
+						endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(inputSplit, informat, job, _props.getRowIndexStructure().getSeqEndString());
 						tokenLength = _props.getRowIndexStructure().getSeqEndString().length();
-						lastLineIndex = -1;
+						diffBeginEndToken = true;
 					}
 					else {
 						endIndexes = new ArrayList<>();
 						for(int i = 1; i < beginIndexes.size(); i++)
 							endIndexes.add(beginIndexes.get(i));
 					}
-
+					beginIndexes.remove(beginIndexes.size()-1);
 					int i = 0;
 					int j = 0;
-					if(beginIndexes.get(0).getKey() > endIndexes.get(0).getKey()) {
-						nrows++;
-						for(; j < endIndexes.size() && beginIndexes.get(0).getKey() > endIndexes.get(j).getKey(); j++);
-					}
-
 					while(i < beginIndexes.size() && j < endIndexes.size()) {
-						Pair<Long, Integer> p1 = beginIndexes.get(i);
-						Pair<Long, Integer> p2 = endIndexes.get(j);
+						Pair<Integer, Integer> p1 = beginIndexes.get(i);
+						Pair<Integer, Integer> p2 = endIndexes.get(j);
 						int n = 0;
 						while(p1.getKey() < p2.getKey() || (p1.getKey() == p2.getKey() && p1.getValue() < p2.getValue())) {
 							n++;
 							i++;
-							if(i == beginIndexes.size()) {
+							if(i == beginIndexes.size())
 								break;
-							}
 							p1 = beginIndexes.get(i);
 						}
 						j += n - 1;
-						splitInfo.addIndexAndPosition(beginIndexes.get(i - n).getKey(), endIndexes.get(j).getKey(),
-							beginIndexes.get(i - n).getValue(), endIndexes.get(j).getValue() + tokenLength);
+						splitInfo.addIndexAndPosition(beginIndexes.get(i - n).getKey(), endIndexes.get(j).getKey(), beginIndexes.get(i - n).getValue(),
+							endIndexes.get(j).getValue() + tokenLength);
 						j++;
 						nrows++;
 					}
-					if(splitIndex < splits.length - 1) {
+					if(!diffBeginEndToken && i == beginIndexes.size() && j < endIndexes.size())
+						nrows++;
+					if(beginIndexes.get(0).getKey() == 0 && beginIndexes.get(0).getValue() == 0)
+						splitInfo.setRemainString("");
+					else {
 						RecordReader<LongWritable, Text> reader = informat.getRecordReader(inputSplit, job, Reporter.NULL);
 						LongWritable key = new LongWritable();
 						Text value = new Text();
 
 						StringBuilder sb = new StringBuilder();
-
-						for(long ri = 0; ri < beginIndexes.get(beginIndexes.size() - 1).getKey(); ri++) {
+						for(int ri = 0; ri < beginIndexes.get(0).getKey(); ri++) {
 							reader.next(key, value);
+							String raw = value.toString();
+							sb.append(raw);
 						}
-						if(reader.next(key, value)) {
-							String strVar = value.toString();
-							sb.append(strVar.substring(beginIndexes.get(beginIndexes.size() - 1).getValue()));
-							while(reader.next(key, value)) {
-								sb.append(value.toString());
-							}
-							_offsets.getSeqOffsetPerSplit(splitIndex + 1).setRemainString(sb.toString());
+						if(beginIndexes.get(0).getValue() != 0) {
+							reader.next(key, value);
+							sb.append(value.toString().substring(0, beginIndexes.get(0).getValue()));
 						}
-					}
-					else if(lastLineIndex !=-1) {
-						splitInfo.addIndexAndPosition(endIndexes.get(endIndexes.size()-1).getKey(), lastLineIndex,
-							endIndexes.get(endIndexes.size()-1).getValue(), 0);
-						nrows++;
+						splitInfo.setRemainString(sb.toString());
 					}
 					splitInfo.setNrows(nrows);
+					_offsets.setSeqOffsetPerSplit(splitIndex, splitInfo);
 					_offsets.setOffsetPerSplit(splitIndex, row);
 					row += nrows;
 					splitIndex++;

@@ -264,11 +264,6 @@ public class RawIndex {
 	}
 
 	private void extractNumericDotEActualValues() {
-		//		if(this.dotEActualNumericValues == null)
-		//			this.dotEActualNumericValues = new HashMap<>();
-		//		else
-		//			return;
-
 		BitSet numericDotEBitSet = (BitSet) numberBitSet.clone();
 		numericDotEBitSet.or(dotBitSet);
 		numericDotEBitSet.or(eBitSet);

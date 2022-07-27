@@ -75,8 +75,8 @@ public class TemplateUtil {
 
 	public static class SplitInfo {
 		private int nrows;
-		private ArrayList<Long> recordIndexBegin;
-		private ArrayList<Long> recordIndexEnd;
+		private ArrayList<Integer> recordIndexBegin;
+		private ArrayList<Integer> recordIndexEnd;
 		private ArrayList<Integer> recordPositionBegin;
 		private ArrayList<Integer> recordPositionEnd;
 		private String remainString;
@@ -86,10 +86,9 @@ public class TemplateUtil {
 			recordIndexEnd = new ArrayList<>();
 			recordPositionBegin = new ArrayList<>();
 			recordPositionEnd = new ArrayList<>();
-			remainString = "";
 		}
 
-		public void addIndexAndPosition(Long beginIndex, Long endIndex, int beginPos, int endPos) {
+		public void addIndexAndPosition(int beginIndex, int endIndex, int beginPos, int endPos) {
 			recordIndexBegin.add(beginIndex);
 			recordIndexEnd.add(endIndex);
 			recordPositionBegin.add(beginPos);
@@ -98,10 +97,6 @@ public class TemplateUtil {
 
 		public int getNrows() {
 			return nrows;
-		}
-
-		public int getListSize() {
-			return recordIndexBegin.size();
 		}
 
 		public void setNrows(int nrows) {
@@ -116,11 +111,11 @@ public class TemplateUtil {
 			this.remainString = remainString;
 		}
 
-		public Long getRecordIndexBegin(int index) {
+		public int getRecordIndexBegin(int index) {
 			return recordIndexBegin.get(index);
 		}
 
-		public Long getRecordIndexEnd(int index) {
+		public int getRecordIndexEnd(int index) {
 			return recordIndexEnd.get(index);
 		}
 
@@ -133,14 +128,14 @@ public class TemplateUtil {
 		}
 	}
 
-	public static Pair<ArrayList<Pair<Long, Integer>>, Long> getTokenIndexOnMultiLineRecords(InputSplit split,
-		TextInputFormat inputFormat, JobConf job, String token) throws IOException {
+	public static ArrayList<Pair<Integer, Integer>> getTokenIndexOnMultiLineRecords(InputSplit split, TextInputFormat inputFormat, JobConf job,
+		String token) throws IOException {
 		RecordReader<LongWritable, Text> reader = inputFormat.getRecordReader(split, job, Reporter.NULL);
 		LongWritable key = new LongWritable();
 		Text value = new Text();
-		ArrayList<Pair<Long, Integer>> result = new ArrayList<>();
+		ArrayList<Pair<Integer, Integer>> result = new ArrayList<>();
 
-		long ri = 0;
+		int ri = 0;
 		while(reader.next(key, value)) {
 			String raw = value.toString();
 			int index;
@@ -157,7 +152,8 @@ public class TemplateUtil {
 			while(true);
 			ri++;
 		}
-		return new Pair<>(result, ri);
+		result.add(new Pair<>(ri, 0));
+		return result;
 	}
 
 	public static int getEndPos(String str, int strLen, int currPos, HashSet<String> endWithValueString) {
@@ -170,21 +166,22 @@ public class TemplateUtil {
 		return endPos;
 	}
 
-	public static String getStringChunkOfBufferReader(BufferedReader br, String remainedStr, int chunkSize) {
+
+	public static String getStringChunkOfBufferReader(BufferedReader br, String remainedStr,int chunkSize){
 		StringBuilder sb = new StringBuilder();
 		String str;
 		int readSize = 0;
 		try {
-			while((str = br.readLine()) != null && readSize < chunkSize) {
+			while((str = br.readLine()) != null && readSize<chunkSize) {
 				sb.append(str).append("\n");
 				readSize += str.length();
 			}
 		}
-		catch(Exception ex) {
+		catch(Exception ex){
 
 		}
-		if(sb.length() > 0) {
-			if(remainedStr != null && remainedStr.length() > 0)
+		if(sb.length() >0) {
+			if(remainedStr!=null && remainedStr.length() >0)
 				return remainedStr + sb;
 			else
 				return sb.toString();
@@ -192,8 +189,7 @@ public class TemplateUtil {
 		else
 			return null;
 	}
-
-	protected int getColIndex(HashMap<String, Integer> colKeyPatternMap, String key) {
+	protected int getColIndex(HashMap<String, Integer> colKeyPatternMap, String key){
 		return colKeyPatternMap.getOrDefault(key, -1);
 	}
 }

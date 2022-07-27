@@ -19,51 +19,67 @@
 
 package org.apache.sysds.runtime.iogen.codegen;
 
-import com.google.gson.Gson;
 import org.apache.sysds.common.Types;
+import org.apache.sysds.lops.Lop;
+import org.apache.sysds.runtime.iogen.ColIndexStructure;
 import org.apache.sysds.runtime.iogen.CustomProperties;
 import org.apache.sysds.runtime.iogen.KeyTrie;
+import org.apache.sysds.runtime.iogen.MappingProperties;
+import org.apache.sysds.runtime.iogen.RowIndexStructure;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
 
 public class CodeGenTrie {
-	private final CodeGenTrieNode rootCol;
-	private final CodeGenTrieNode rootRow;
 	private final CustomProperties properties;
-	private final String destination;
+	private final CodeGenTrieNode ctnValue;
+	private final CodeGenTrieNode ctnIndexes;
 
-	public CodeGenTrie(CustomProperties properties, String destination) {
-		this.rootCol = new CodeGenTrieNode(CodeGenTrieNode.NodeType.COL);
-		this.rootRow = new CodeGenTrieNode(CodeGenTrieNode.NodeType.ROW);
+	private final String destination;
+	private boolean isMatrix;
+
+	public CodeGenTrie(CustomProperties properties, String destination, boolean isMatrix) {
 		this.properties = properties;
 		this.destination = destination;
-		buildPrefixTree();
-	}
+		this.isMatrix = isMatrix;
 
-	// Build Trie for Col and Row Key Patterns
-	private void buildPrefixTree() {
-		for(int c = 0; c < properties.getColKeyPattern().length; c++) {
-			KeyTrie keyTrie = properties.getColKeyPattern()[c];
-			Types.ValueType vt = properties.getSchema() == null ? Types.ValueType.FP64 : properties.getSchema()[c];
-			if(keyTrie != null) {
-				for(ArrayList<String> keys : keyTrie.getReversePrefixKeyPatterns())
-					this.insert(rootCol, c, vt, keys);
+		this.ctnValue = new CodeGenTrieNode(CodeGenTrieNode.NodeType.VALUE);
+		this.ctnIndexes = new CodeGenTrieNode(CodeGenTrieNode.NodeType.INDEX);
+
+		if(properties.getColKeyPatterns() != null) {
+			for(int c = 0; c < properties.getColKeyPatterns().length; c++) {
+				KeyTrie keyTrie = properties.getColKeyPatterns()[c];
+				Types.ValueType vt = Types.ValueType.FP64;
+				if(!this.isMatrix)
+					vt = properties.getSchema()[c];
+				if(keyTrie != null) {
+					for(ArrayList<String> keys : keyTrie.getReversePrefixKeyPatterns())
+						this.insert(ctnValue, c + "", vt, keys);
+				}
+			}
+		}
+		else if(properties.getValueKeyPattern() != null) {
+			// TODO: same pattern for all columns but the ValueTypes are different- fix it !
+			for(ArrayList<String> keys : properties.getValueKeyPattern().getPrefixKeyPatterns()) {
+				this.insert(ctnValue, "col", Types.ValueType.FP64, keys);
 			}
 		}
 
-		if(properties.getRowIndex() == CustomProperties.IndexProperties.PREFIX) {
-			KeyTrie keyTrie = properties.getRowKeyPattern();
-			Types.ValueType vt = Types.ValueType.FP32;
-			if(keyTrie != null) {
-				for(ArrayList<String> keys : keyTrie.getReversePrefixKeyPatterns())
-					this.insert(rootRow, -1, vt, keys);
-			}
+		if(properties.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.RowWiseExist ||
+			properties.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.CellWiseExist) {
+			for(ArrayList<String> keys : properties.getRowIndexStructure().getKeyPattern().getPrefixKeyPatterns())
+				this.insert(ctnIndexes, "0", Types.ValueType.INT32, keys);
+		}
+
+		if(properties.getColIndexStructure().getProperties() == ColIndexStructure.IndexProperties.CellWiseExist &&
+			properties.getColIndexStructure().getKeyPattern() !=null) {
+			for(ArrayList<String> keys : properties.getColIndexStructure().getKeyPattern().getPrefixKeyPatterns())
+				this.insert(ctnIndexes, "1", Types.ValueType.INT32, keys);
 		}
 	}
 
-	private void insert(CodeGenTrieNode root, int index, Types.ValueType valueType, ArrayList<String> keys) {
+	private void insert(CodeGenTrieNode root, String index, Types.ValueType valueType, ArrayList<String> keys) {
 		CodeGenTrieNode currentNode = root;
 		int rci = 0;
 		for(String key : keys) {
@@ -81,9 +97,9 @@ public class CodeGenTrie {
 		else {
 			CodeGenTrieNode newNode;
 			for(int i = rci; i < keys.size(); i++) {
-				newNode = new CodeGenTrieNode(i == keys.size() - 1, index, valueType, keys.get(i), new HashSet<>(),
-					root.getType());
-				newNode.setRowIndexBeginPos(properties.getRowIndexBegin());
+				newNode = new CodeGenTrieNode(i == keys.size() - 1, index, valueType, keys.get(i), new HashSet<>(), root.getType());
+				newNode.setRowIndexBeginPos(properties.getRowIndexStructure().getRowIndexBegin());
+				newNode.setColIndexBeginPos(properties.getColIndexStructure().getColIndexBegin());
 				currentNode.getChildren().put(keys.get(i), newNode);
 				currentNode = newNode;
 			}
@@ -92,40 +108,54 @@ public class CodeGenTrie {
 
 	public String getJavaCode() {
 		StringBuilder src = new StringBuilder();
-		switch(properties.getRowIndex()) {
-			case IDENTIFY:
-				getJavaCode(rootCol, src, "0");
-				src.append("row++; \n");
-				break;
-			case PREFIX:
-				getJavaCode(rootRow, src, "0");
-				getJavaCode(rootCol, src, "0");
-				break;
-			case KEY:
-				src.append("String strChunk, remainedStr = null; \n");
-				src.append("int chunkSize = 2048; \n");
-				src.append("int recordIndex = 0; \n");
-				src.append("try { \n");
-				src.append("do{ \n");
-				src.append("strChunk = getStringChunkOfBufferReader(br, remainedStr, chunkSize); \n");
-				src.append("System.out.println(strChunk); \n");
-				src.append("if(strChunk == null || strChunk.length() == 0) break; \n");
-				src.append("do { \n");
-				ArrayList<ArrayList<String>> kp = properties.getRowKeyPattern().getPrefixKeyPatterns();
-				getJavaRowCode(src, kp, kp);
-				getJavaCode(rootCol, src, "0");
-				src.append("row++; \n");
-				src.append("}while(true); \n");
-				src.append("remainedStr = strChunk.substring(recordIndex); \n");
+		int ncols = properties.getNcols();
+		MappingProperties.DataProperties data = properties.getMappingProperties().getDataProperties();
+		RowIndexStructure.IndexProperties rowIndex = properties.getRowIndexStructure().getProperties();
+		ColIndexStructure.IndexProperties colIndex = properties.getColIndexStructure().getProperties();
 
-				src.append("}while(true); \n");
-				src.append("} \n");
-				src.append("finally { \n");
-				src.append("IOUtilFunctions.closeSilently(br); \n");
-				src.append("} \n");
-				break;
+		// example: csv
+		if(data != MappingProperties.DataProperties.NOTEXIST &&
+			((rowIndex == RowIndexStructure.IndexProperties.Identity &&
+			colIndex == ColIndexStructure.IndexProperties.Identity) ||
+			rowIndex == RowIndexStructure.IndexProperties.SeqScatter)) {
+			getJavaCode(ctnValue, src, "0");
+			src.append("row++; \n");
 		}
-
+		// example: MM
+		else if(rowIndex == RowIndexStructure.IndexProperties.CellWiseExist &&
+			colIndex == ColIndexStructure.IndexProperties.CellWiseExist) {
+			getJavaCode(ctnIndexes, src, "0");
+			src.append("if(col < " + ncols + "){ \n");
+			if(data != MappingProperties.DataProperties.NOTEXIST) {
+				getJavaCode(ctnValue, src, "0");
+			}
+			else
+				src.append(destination).append("(row, col, cellValue); \n");
+			src.append("} \n");
+		}
+		// example: LibSVM
+		else if(rowIndex == RowIndexStructure.IndexProperties.Identity &&
+			colIndex == ColIndexStructure.IndexProperties.CellWiseExist){
+			src.append("String strValues[] = str.split(\""+ properties.getColIndexStructure().getValueDelim()+"\"); \n");
+			src.append("for(String si: strValues){ \n");
+			src.append("String strIndexValue[] = si.split(\""+ properties.getColIndexStructure().getIndexDelim()+"\", -1); \n");
+			src.append("if(strIndexValue.length == 2){ \n");
+			src.append("col = UtilFunctions.parseToInt(strIndexValue[0]); \n");
+			src.append("if(col <= "+ncols+"){ \n");
+			if(this.isMatrix){
+				src.append("try{ \n");
+				src.append(destination).append("(row, col, Double.parseDouble(strIndexValue[1])); \n");
+				src.append("lnnz++;\n");
+				src.append("} catch(Exception e){"+destination+"(row, col, 0d);} \n");
+			}
+			else {
+				src.append(destination).append("(row, col, UtilFunctions.stringToObject(_props.getSchema()[col], strIndexValue[1]); \n");
+			}
+			src.append("} \n");
+			src.append("} \n");
+			src.append("} \n");
+			src.append("row++; \n");
+		}
 		return src.toString();
 	}
 
@@ -139,6 +169,10 @@ public class CodeGenTrie {
 	}
 
 	private void getJavaCode(CodeGenTrieNode node, StringBuilder src, String currPos) {
+		getJavaCodeIndexOf(node, src, currPos);
+	}
+
+	private void getJavaCodeIndexOf(CodeGenTrieNode node, StringBuilder src, String currPos) {
 		if(node.isEndOfCondition())
 			src.append(node.geValueCode(destination, currPos));
 
@@ -147,40 +181,26 @@ public class CodeGenTrie {
 			for(String key : node.getChildren().keySet()) {
 				if(key.length() > 0) {
 					currPosVariable = getRandomName("curPos");
-					if(node.getKey() == null)
-						src.append("index = str.indexOf(\"" + key.replace("\\\"","\"").replace("\"", "\\\"") + "\"); \n");
+					String mKey = key.replace("\\\"", Lop.OPERAND_DELIMITOR);
+					mKey = mKey.replace("\\", "\\\\");
+					mKey = mKey.replace(Lop.OPERAND_DELIMITOR,"\\\"");
+					if(node.getKey() == null) {
+						src.append("index = str.indexOf(\"" + mKey.replace("\\\"", "\"").replace("\"", "\\\"") + "\"); \n");
+					}
 					else
-						src.append("index = str.indexOf(\"" + key.replace("\\\"","\"").replace("\"", "\\\"") + "\", " + currPos + "); \n");
+						src.append("index = str.indexOf(\"" + mKey.replace("\\\"", "\"").replace("\"", "\\\"") + "\", " + currPos + "); \n");
 					src.append("if(index != -1) { \n");
 					src.append("int " + currPosVariable + " = index + " + key.length() + "; \n");
 				}
 				CodeGenTrieNode child = node.getChildren().get(key);
-				getJavaCode(child, src, currPosVariable);
+				getJavaCodeIndexOf(child, src, currPosVariable);
 				if(key.length() > 0)
 					src.append("} \n");
 			}
 		}
 	}
 
-	private void getJavaRowCode(StringBuilder src, ArrayList<ArrayList<String>> rowBeginPattern,
-								ArrayList<ArrayList<String>> rowEndPattern){
-
-		// TODO: we have to extend it to multi patterns
-		// now, we assumed each row can have single pattern for begin and end
-
-		for(ArrayList<String> kb: rowBeginPattern){
-			for(String k: kb){
-				src.append("recordIndex = strChunk.indexOf(\""+k+"\", recordIndex); \n");
-				src.append("if(recordIndex == -1) break; \n");
-			}
-			src.append("recordIndex +="+ kb.get(kb.size() -1).length()+"; \n");
-			break;
-		}
-		src.append("int recordBeginPos = recordIndex; \n");
-		String endKey = rowEndPattern.get(0).get(0);
-		src.append("recordIndex = strChunk.indexOf(\""+endKey+"\", recordBeginPos);");
-		src.append("if(recordIndex == -1) break; \n");
-		src.append("str = strChunk.substring(recordBeginPos, recordIndex); \n");
-		src.append("strLen = str.length(); \n");
+	public void setMatrix(boolean matrix) {
+		isMatrix = matrix;
 	}
 }

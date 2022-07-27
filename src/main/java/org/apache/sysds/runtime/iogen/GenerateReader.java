@@ -21,34 +21,48 @@ package org.apache.sysds.runtime.iogen;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.sysds.runtime.codegen.CodegenUtils;
 import org.apache.sysds.runtime.io.MatrixReader;
 import org.apache.sysds.runtime.io.FrameReader;
-import org.apache.sysds.runtime.iogen.template.GIOMatrixReader;
+import org.apache.sysds.runtime.iogen.codegen.FrameCodeGen;
+import org.apache.sysds.runtime.iogen.codegen.MatrixCodeGen;
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
 import org.apache.sysds.runtime.matrix.data.MatrixBlock;
 
-/*
-   Generate Reader has two steps:
-      1. Identify file format and extract the properties of it based on the Sample Matrix.
-      The ReaderMapping class tries to map the Sample Matrix on the Sample Raw Matrix.
-      The result of a ReaderMapping is a FileFormatProperties object.
+import java.util.Random;
 
-      2. Generate a reader based on inferred properties.
-
-    Note. Base on this implementation, it is possible to generate a reader 
-    base on Sample Matrix and generate a reader for a frame or vice versa.
-*/
 public abstract class GenerateReader {
 
 	protected static final Log LOG = LogFactory.getLog(GenerateReader.class.getName());
 
-	protected static FormatIdentifying formatIdentifying;
+	protected CustomProperties properties;
 
 	public GenerateReader(SampleProperties sampleProperties) throws Exception {
 
-		formatIdentifying = sampleProperties.getDataType().isMatrix() ? new FormatIdentifying(sampleProperties.getSampleRaw(),
+		FormatIdentifying formatIdentifying = sampleProperties.getDataType().isMatrix() ? new FormatIdentifying(sampleProperties.getSampleRaw(),
 			sampleProperties.getSampleMatrix()) : new FormatIdentifying(sampleProperties.getSampleRaw(),
 			sampleProperties.getSampleFrame());
+
+		properties = formatIdentifying.getFormatProperties();
+		if(properties == null) {
+			throw new Exception("The file format couldn't recognize!!");
+		}
+		if(sampleProperties.getDataType().isFrame()){
+			properties.setSchema(sampleProperties.getSampleFrame().getSchema());
+		}
+	}
+
+	public String getRandomClassName() {
+		Random r = new Random();
+		int low = 0;
+		int high = 100000000;
+		int result = r.nextInt(high - low) + low;
+
+		return "GIOReader_" + result;
+	}
+
+	public CustomProperties getProperties() {
+		return properties;
 	}
 
 	// Generate Reader for Matrix
@@ -60,29 +74,19 @@ public abstract class GenerateReader {
 			super(sampleProperties);
 		}
 
-		public GenerateReaderMatrix(String sampleRaw, MatrixBlock sampleMatrix) throws Exception {
+		public GenerateReaderMatrix(String sampleRaw, MatrixBlock sampleMatrix, boolean parallel) throws Exception {
 			super(new SampleProperties(sampleRaw, sampleMatrix));
+			properties.setParallel(parallel);
 		}
 
 		public MatrixReader getReader() throws Exception {
-
-			CustomProperties ffp = formatIdentifying.getFormatProperties();
-			if(ffp == null) {
-				throw new Exception("The file format couldn't recognize!!");
-			}
-
-			//String className = "GIOMatrixReader2";
-			//TemplateCodeGenMatrix src = new TemplateCodeGenMatrix(ffp, className);
-
+			String className = getRandomClassName();
+			MatrixCodeGen src = new MatrixCodeGen(properties, className);
 			// constructor with arguments as CustomProperties
-			//Class[] cArg = new Class[1];
-			//cArg[0] = CustomProperties.class;
-
-			//String co = src.generateCodeJava();
-
-			//System.out.println(src.generateCodeJava());
-			//matrixReader = (MatrixReader) CodegenUtils.compileClass(className, src.generateCodeJava()).getDeclaredConstructor().newInstance();
-			matrixReader = new GIOMatrixReader(ffp);
+			Class[] cArg = new Class[1];
+			cArg[0] = CustomProperties.class;
+			String srcJava =  src.generateCodeJava();
+			matrixReader = (MatrixReader) CodegenUtils.compileClass(className, srcJava).getDeclaredConstructor(cArg).newInstance(properties);
 			return matrixReader;
 		}
 	}
@@ -96,16 +100,19 @@ public abstract class GenerateReader {
 			super(sampleProperties);
 		}
 
-		public GenerateReaderFrame(String sampleRaw, FrameBlock sampleFrame) throws Exception {
+		public GenerateReaderFrame(String sampleRaw, FrameBlock sampleFrame, boolean parallel) throws Exception {
 			super(new SampleProperties(sampleRaw, sampleFrame));
+			properties.setParallel(parallel);
 		}
 
 		public FrameReader getReader() throws Exception {
-
-			CustomProperties ffp = formatIdentifying.getFormatProperties();
-			if(ffp == null) {
-				throw new Exception("The file format couldn't recognize!!");
-			}
+			String className = getRandomClassName();
+			FrameCodeGen src = new FrameCodeGen(properties, className);
+			// constructor with arguments as CustomProperties
+			Class[] cArg = new Class[1];
+			cArg[0] = CustomProperties.class;
+			String srcJava = src.generateCodeJava();
+			frameReader = (FrameReader) CodegenUtils.compileClass(className, srcJava).getDeclaredConstructor(cArg).newInstance(properties);
 			return frameReader;
 		}
 	}

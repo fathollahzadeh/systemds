@@ -63,8 +63,8 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 		this._props = _props;
 	}
 
-	@Override public FrameBlock readFrameFromHDFS(String fname, Types.ValueType[] schema, String[] names, long rlen,
-		long clen) throws IOException, DMLRuntimeException {
+	@Override public FrameBlock readFrameFromHDFS(String fname, Types.ValueType[] schema, String[] names, long rlen, long clen)
+		throws IOException, DMLRuntimeException {
 
 		//prepare file access
 		job = new JobConf(ConfigurationManager.getCachedJobConf());
@@ -89,8 +89,8 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 		return ret;
 	}
 
-	private FrameBlock computeSizeAndCreateOutputFrameBlock(Types.ValueType[] schema, String[] names,
-		InputSplit[] splits, Path path, long rlen, long clen) throws IOException, DMLRuntimeException {
+	private FrameBlock computeSizeAndCreateOutputFrameBlock(Types.ValueType[] schema, String[] names, InputSplit[] splits, Path path, long rlen,
+		long clen) throws IOException, DMLRuntimeException {
 		_rLen = 0;
 		_cLen = _props.getNcols();
 
@@ -122,9 +122,8 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 				}
 				pool.shutdown();
 			}
-			if(_props.getRowIndexStructure()
-				.getProperties() == RowIndexStructure.IndexProperties.CellWiseExist || _props.getRowIndexStructure()
-				.getProperties() == RowIndexStructure.IndexProperties.RowWiseExist) {
+			if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.CellWiseExist ||
+				_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.RowWiseExist) {
 				ArrayList<IOUtilFunctions.CountRowsTask> tasks = new ArrayList<>();
 				for(InputSplit split : splits)
 					tasks.add(new IOUtilFunctions.CountRowsTask(split, informat, job, false));
@@ -142,32 +141,20 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 				pool.shutdown();
 			}
 			else if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.SeqScatter) {
-
-				_offsets = new TemplateUtil.SplitOffsetInfos(splits.length);
-				for(int i = 0; i < splits.length; i++) {
-					TemplateUtil.SplitInfo splitInfo = new TemplateUtil.SplitInfo();
-					_offsets.setSeqOffsetPerSplit(i, splitInfo);
-					_offsets.setOffsetPerSplit(i, 0);
-				}
-
 				ArrayList<CountSeqScatteredRowsTask> tasks = new ArrayList<>();
-				int splitIndex = 0;
-				for(InputSplit split : splits) {
-					Integer nextOffset = splitIndex + 1 == splits.length ? null : splitIndex + 1;
-					tasks.add(new CountSeqScatteredRowsTask(_offsets, splitIndex, nextOffset, split, informat, job,
-						_props.getRowIndexStructure().getSeqBeginString(),
+				for(InputSplit split : splits)
+					tasks.add(new CountSeqScatteredRowsTask(split, informat, job, _props.getRowIndexStructure().getSeqBeginString(),
 						_props.getRowIndexStructure().getSeqEndString()));
-					splitIndex++;
-				}
-
-				System.out.println(_props.getRowIndexStructure().getSeqBeginString()+"  "+_props.getRowIndexStructure().getSeqEndString());
 
 				// collect row counts for offset computation
+				// early error notify in case not all tasks successful
+				_offsets = new TemplateUtil.SplitOffsetInfos(tasks.size());
 				int i = 0;
-				for(Future<Integer> rc : pool.invokeAll(tasks)) {
-					Integer nrows = rc.get();
+				for(Future<TemplateUtil.SplitInfo> rc : pool.invokeAll(tasks)) {
+					TemplateUtil.SplitInfo splitInfo = rc.get();
+					_offsets.setSeqOffsetPerSplit(i, splitInfo);
 					_offsets.setOffsetPerSplit(i, _rLen);
-					_rLen += nrows;
+					_rLen = _rLen + splitInfo.getNrows();
 					i++;
 				}
 				pool.shutdown();
@@ -191,12 +178,13 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 				_cLen = (int) clen;
 			}
 		}
+
 		FrameBlock ret = createOutputFrameBlock(lschema, lnames, _rLen);
 		return ret;
 	}
 
-	@Override public FrameBlock readFrameFromInputStream(InputStream is, Types.ValueType[] schema, String[] names,
-		long rlen, long clen) throws IOException, DMLRuntimeException {
+	@Override public FrameBlock readFrameFromInputStream(InputStream is, Types.ValueType[] schema, String[] names, long rlen, long clen)
+		throws IOException, DMLRuntimeException {
 
 		// allocate output frame block
 		InputStreamInputFormat informat = new InputStreamInputFormat(is);
@@ -243,7 +231,8 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 			_splitCount = splitCount;
 		}
 
-		@Override public Long call() throws IOException {
+		@Override
+		public Long call() throws IOException {
 			RecordReader<LongWritable, Text> reader = _informat.getRecordReader(_split, job, Reporter.NULL);
 			LongWritable key = new LongWritable();
 			Text value = new Text();
@@ -254,112 +243,86 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 		}
 	}
 
-	private static class CountSeqScatteredRowsTask implements Callable<Integer> {
-		private final TemplateUtil.SplitOffsetInfos _offsets;
-		private final Integer _curOffset;
-		private final Integer _nextOffset;
+	private static class CountSeqScatteredRowsTask implements Callable<TemplateUtil.SplitInfo> {
 		private final InputSplit _split;
 		private final TextInputFormat _inputFormat;
-		private final JobConf _job;
-		private final String _beginToken;
-		private final String _endToken;
+		private final JobConf _jobConf;
+		private final String _beginString;
+		private final String _endString;
 
-		public CountSeqScatteredRowsTask(TemplateUtil.SplitOffsetInfos offsets, Integer curOffset, Integer nextOffset,
-			InputSplit split, TextInputFormat inputFormat, JobConf job, String beginToken, String endToken) {
-			_offsets = offsets;
-			_curOffset = curOffset;
-			_nextOffset = nextOffset;
-			_inputFormat = inputFormat;
+		public CountSeqScatteredRowsTask(InputSplit split, TextInputFormat inputFormat, JobConf jobConf, String beginString, String endString) {
 			_split = split;
-			_job = job;
-			_beginToken = beginToken;
-			_endToken = endToken;
+			_inputFormat = inputFormat;
+			_jobConf = jobConf;
+			_beginString = beginString;
+			_endString = endString;
 		}
 
-		@Override public Integer call() throws Exception {
+		@Override
+		public TemplateUtil.SplitInfo call() throws Exception {
+			TemplateUtil.SplitInfo splitInfo = new TemplateUtil.SplitInfo();
 			int nrows = 0;
-			TemplateUtil.SplitInfo splitInfo = _offsets.getSeqOffsetPerSplit(_curOffset);
-
-			long lastLineIndex;
-			Pair<ArrayList<Pair<Long, Integer>>, Long> tokenPair =  TemplateUtil.getTokenIndexOnMultiLineRecords(
-				_split, _inputFormat, _job, _endToken);
-
-			ArrayList<Pair<Long, Integer>> beginIndexes = tokenPair.getKey();
-			lastLineIndex = tokenPair.getValue();
-
-			ArrayList<Pair<Long, Integer>> endIndexes;
+			ArrayList<Pair<Integer, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split, _inputFormat, _jobConf,
+				_beginString);
+			ArrayList<Pair<Integer, Integer>> endIndexes;
 			int tokenLength = 0;
-			if(!_beginToken.equals(_endToken)) {
-				endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split, _inputFormat, _job, _endToken).getKey();
-				tokenLength = _endToken.length();
-				lastLineIndex = -1;
+			boolean diffBeginEndToken = false;
+			if(!_beginString.equals(_endString)) {
+				endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split, _inputFormat, _jobConf, _endString);
+				tokenLength = _endString.length();
+				diffBeginEndToken = true;
 			}
 			else {
 				endIndexes = new ArrayList<>();
 				for(int i = 1; i < beginIndexes.size(); i++)
 					endIndexes.add(beginIndexes.get(i));
 			}
-
+			beginIndexes.remove(beginIndexes.size()-1);
 			int i = 0;
 			int j = 0;
-			if(beginIndexes.get(0).getKey() > endIndexes.get(0).getKey()) {
-				nrows++;
-				for(; j < endIndexes.size() && beginIndexes.get(0).getKey() > endIndexes.get(j).getKey(); j++);
-			}
-			else if(_curOffset !=0 && _beginToken.equals(_endToken)){
-				splitInfo.addIndexAndPosition(0l, endIndexes.get(0).getKey(),
-					0, endIndexes.get(0).getValue() + tokenLength);
-				nrows++;
-			}
-
 			while(i < beginIndexes.size() && j < endIndexes.size()) {
-				Pair<Long, Integer> p1 = beginIndexes.get(i);
-				Pair<Long, Integer> p2 = endIndexes.get(j);
+				Pair<Integer, Integer> p1 = beginIndexes.get(i);
+				Pair<Integer, Integer> p2 = endIndexes.get(j);
 				int n = 0;
 				while(p1.getKey() < p2.getKey() || (p1.getKey() == p2.getKey() && p1.getValue() < p2.getValue())) {
 					n++;
 					i++;
-					if(i == beginIndexes.size()) {
+					if(i == beginIndexes.size())
 						break;
-					}
 					p1 = beginIndexes.get(i);
 				}
 				j += n - 1;
-				splitInfo.addIndexAndPosition(beginIndexes.get(i - n).getKey(), endIndexes.get(j).getKey(),
-					beginIndexes.get(i - n).getValue(), endIndexes.get(j).getValue() + tokenLength);
+				splitInfo.addIndexAndPosition(beginIndexes.get(i - n).getKey(), endIndexes.get(j).getKey(), beginIndexes.get(i - n).getValue(),
+					endIndexes.get(j).getValue() + tokenLength);
 				j++;
 				nrows++;
 			}
-			if(_nextOffset != null) {
-				RecordReader<LongWritable, Text> reader = _inputFormat.getRecordReader(_split, _job, Reporter.NULL);
+			if(!diffBeginEndToken && i == beginIndexes.size() && j < endIndexes.size())
+				nrows++;
+			if(beginIndexes.get(0).getKey() == 0 && beginIndexes.get(0).getValue() == 0)
+				splitInfo.setRemainString("");
+			else {
+				RecordReader<LongWritable, Text> reader = _inputFormat.getRecordReader(_split, _jobConf, Reporter.NULL);
 				LongWritable key = new LongWritable();
 				Text value = new Text();
+
 				StringBuilder sb = new StringBuilder();
-				for(long ri = 0; ri < beginIndexes.get(beginIndexes.size() - 1).getKey(); ri++) {
+				for(int ri = 0; ri < beginIndexes.get(0).getKey(); ri++) {
 					reader.next(key, value);
+					String raw = value.toString();
+					sb.append(raw);
 				}
-				if(reader.next(key, value)) {
-					String strVar = value.toString();
-					sb.append(strVar.substring(beginIndexes.get(beginIndexes.size() - 1).getValue()));
-					while(reader.next(key, value)) {
-						sb.append(value.toString());
-					}
-					_offsets.getSeqOffsetPerSplit(_nextOffset).setRemainString(sb.toString());
+				if(beginIndexes.get(0).getValue() != 0) {
+					reader.next(key, value);
+					sb.append(value.toString().substring(0, beginIndexes.get(0).getValue()));
 				}
-			}
-			else if(lastLineIndex !=-1) {
-				splitInfo.addIndexAndPosition(endIndexes.get(endIndexes.size()-1).getKey(), lastLineIndex,
-					endIndexes.get(endIndexes.size()-1).getValue(), 0);
-				nrows++;
+				splitInfo.setRemainString(sb.toString());
 			}
 			splitInfo.setNrows(nrows);
-			_offsets.getSeqOffsetPerSplit(_curOffset).setNrows(nrows);
-			_offsets.setOffsetPerSplit(_curOffset, nrows);
-
-			return nrows;
+			return splitInfo;
 		}
 	}
 
-	protected abstract int readFrameFromHDFS(RecordReader<LongWritable, Text> reader, LongWritable key, Text value,
-		FrameBlock dest, int rowPos, TemplateUtil.SplitInfo splitInfo) throws IOException;
+	protected abstract int readFrameFromHDFS(RecordReader<LongWritable, Text> reader, LongWritable key, Text value, FrameBlock dest, int rowPos,
+		TemplateUtil.SplitInfo splitInfo) throws IOException;
 }

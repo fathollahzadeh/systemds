@@ -51,11 +51,12 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 			"}} \n";
 	}
 
+
 	@Override
 	public String generateCodeJava() {
 		StringBuilder src = new StringBuilder();
 		CodeGenTrie trie = new CodeGenTrie(properties, "dest.set", false);
-		String javaCode = trie.getJavaCode();
+		trie.setMatrix(true);
 		src.append("String str=\"\"; \n");
 		src.append("String remainStr = \"\"; \n");
 		src.append("int col = -1; \n");
@@ -64,41 +65,20 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 		src.append("HashSet<String>[] endWithValueString = _props.endWithValueStrings(); \n");
 		src.append("try { \n");
 		if(properties.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.SeqScatter){
-			src.append("int rlen = splitInfo.getNrows();");
-			src.append("int ri; \n");
-			src.append("int endRow = row + rlen; \n");
+			src.append("int ri = -1; \n");
 			src.append("int beginPosStr, endPosStr; \n");
-			src.append("StringBuilder sb = new StringBuilder(splitInfo.getRemainString()); \n");
-			src.append("long beginIndex = splitInfo.getRecordIndexBegin(0); \n");
-			src.append("long endIndex = splitInfo.getRecordIndexEnd(0); \n");
-			src.append("boolean flag; \n");
-			src.append("if(sb.length() > 0) { \n");
-			src.append("ri = 0; \n");
-			src.append("while(ri < beginIndex) { \n");
-			src.append("reader.next(key, value); \n");
-			src.append("sb.append(value.toString()); \n");
-			src.append("ri++; \n");
-			src.append("} \n");
-			src.append("reader.next(key, value); \n");
-			src.append("String valStr = value.toString(); \n");
-			src.append("sb.append(valStr.substring(0, splitInfo.getRecordPositionBegin(0))); \n");
-			src.append("str = sb.toString();");
-			src.append("strLen = str.length(); \n");
-			src.append(javaCode);
-			src.append("sb = new StringBuilder(valStr.substring(splitInfo.getRecordPositionBegin(0))); \n");
-			src.append("} \n");
-			src.append("else { \n");
-			src.append("ri = -1; \n");
-			src.append("} \n");
-			src.append("int rowCounter = 0; \n");
-			src.append("while(row < endRow) { \n");
+			src.append("StringBuilder sb = new StringBuilder(); \n");
+			src.append("int beginIndex = splitInfo.getRecordIndexBegin(0); \n");
+			src.append("int endIndex = splitInfo.getRecordIndexEnd(0); \n");
+			src.append("boolean flag = true; \n");
+			src.append("while(flag || sb.length() > 0) { \n");
 			src.append("flag = reader.next(key, value); \n");
 			src.append("if(flag) { \n");
 			src.append("ri++; \n");
 			src.append("String valStr = value.toString(); \n");
-			src.append("if(ri >= beginIndex && ri <= endIndex) { \n");
-			src.append("beginPosStr = ri == beginIndex ? splitInfo.getRecordPositionBegin(rowCounter) : 0; \n");
-			src.append("endPosStr = ri == endIndex ? splitInfo.getRecordPositionEnd(rowCounter) : valStr.length(); \n");
+			src.append("beginPosStr = ri == beginIndex ? splitInfo.getRecordPositionBegin(row) : 0; \n");
+			src.append("endPosStr = ri == endIndex ? splitInfo.getRecordPositionEnd(row): valStr.length(); \n");
+			src.append("if(ri >= beginIndex && ri <= endIndex){ \n");
 			src.append("sb.append(valStr.substring(beginPosStr, endPosStr)); \n");
 			src.append("remainStr = valStr.substring(endPosStr); \n");
 			src.append("continue; \n");
@@ -106,26 +86,22 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 			src.append("else { \n");
 			src.append("str = sb.toString(); \n");
 			src.append("sb = new StringBuilder(); \n");
-			src.append("sb = new StringBuilder(); \n");
 			src.append("sb.append(remainStr).append(valStr); \n");
-			src.append("if(rowCounter + 1 < splitInfo.getListSize()) { \n");
-			src.append("beginIndex = splitInfo.getRecordIndexBegin(rowCounter + 1); \n");
-			src.append("endIndex = splitInfo.getRecordIndexEnd(rowCounter + 1); \n");
-			src.append("} \n");
-			src.append("rowCounter++; \n");
+			src.append("beginIndex = splitInfo.getRecordIndexBegin(row+1); \n");
+			src.append("endIndex = splitInfo.getRecordIndexEnd(row+1); \n");
 			src.append("} \n");
 			src.append("} \n");
-			src.append("else { \n");
+			src.append("else {\n");
 			src.append("str = sb.toString(); \n");
-			src.append("sb = new StringBuilder(); \n");
-			src.append("} \n");
+			src.append("sb = new StringBuilder();\n");
+			src.append("}");
 		}
 		else {
 			src.append("while(reader.next(key, value)) { \n");
 			src.append("str = value.toString(); \n");
 		}
 		src.append("strLen = str.length(); \n");
-		src.append(javaCode).append("\n");
+		src.append(trie.getJavaCode());
 		src.append("} \n");
 		src.append("} \n");
 		src.append("catch(Exception ex){ \n");
