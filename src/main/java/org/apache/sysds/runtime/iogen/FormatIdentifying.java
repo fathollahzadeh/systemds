@@ -118,6 +118,20 @@ public class FormatIdentifying {
 
 		// ref to Table 1:
 		if(mappingProperties.getRecordProperties() == MappingProperties.RecordProperties.SINGLELINE) {
+			// check for begin or begin-end record
+			// find begin and end token
+			if(rowIndexStructure.getProperties() == RowIndexStructure.IndexProperties.Identity){
+				String beginToken = findBeginIntersectToken();
+				String endToken = null;
+				if(beginToken !=null) {
+					endToken = findEndIntersectToken();
+					if(!beginToken.equals(endToken)) {
+						generalizeBeginEndToken(beginToken, endToken);
+					}
+				}
+			}
+
+
 			// #1
 			if(rowIndexStructure.getProperties() == RowIndexStructure.IndexProperties.Identity && colIndexStructure.getProperties() == ColIndexStructure.IndexProperties.Identity) {
 				KeyTrie[] colKeyPatterns;
@@ -1266,5 +1280,74 @@ public class FormatIdentifying {
 			return new Pair<>(startPos, currPos + key.get(key.size() - 1).length());
 		else
 			return new Pair<>(-1, -1);
+	}
+
+	private String findBeginIntersectToken(){
+		StringBuilder sb = new StringBuilder();
+		int index = 0;
+		for(Character ch: sampleRawIndexes.get(0).getRaw().toCharArray()) {
+			boolean flag = true;
+			for(RawIndex raw : sampleRawIndexes) {
+				if(raw.getRaw().charAt(index) != ch){
+					flag = false;
+					break;
+				}
+			}
+			if(flag)
+				sb.append(ch);
+			else
+				break;
+			index++;
+		}
+		if(sb.length() > 0)
+			return sb.toString();
+		else
+			return null;
+	}
+	private String findEndIntersectToken(){
+		StringBuilder sb = new StringBuilder();
+		int index = 0;
+		for(Character ch: new StringBuilder(sampleRawIndexes.get(0).getRaw()).reverse().toString().toCharArray()) {
+			boolean flag = true;
+			for(RawIndex raw : sampleRawIndexes) {
+				if(new StringBuilder(raw.getRaw()).reverse().toString().charAt(index) != ch){
+					flag = false;
+					break;
+				}
+			}
+			if(flag)
+				sb.append(ch);
+			else
+				break;
+			index++;
+		}
+		if(sb.length() > 0)
+			return sb.reverse().toString();
+		else
+			return null;
+	}
+
+	private Pair<String, String> generalizeBeginEndToken(String beginToken, String endToken){
+		Pair<String, String> result = new Pair<>();
+		if(beginToken.length() == 1)
+			result.setKey(beginToken);
+		if(endToken.length() == 1)
+			result.setValue(endToken);
+
+		HashSet<Character> characters = new HashSet<>();
+		for(Character ch: beginToken.toCharArray())
+			characters.add(ch);
+		for(RawIndex raw: sampleRawIndexes){
+			System.out.println(raw.getRaw());
+			for(Character ch: raw.getRaw().toCharArray())
+				if(characters.contains(ch))
+					System.out.print(ch);
+				else
+					System.out.print("*");
+			System.out.println();
+			System.out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++");
+		}
+
+		return null;
 	}
 }

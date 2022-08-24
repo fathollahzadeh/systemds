@@ -78,7 +78,7 @@ public abstract class GIOMatrixReader extends AutomatedTestBase {
 
 			TestConfiguration config = getTestConfiguration(getTestName());
 			loadTestConfiguration(config);
-			setOutputBuffering(true);
+			setOutputBuffering(false);
 			setOutAndExpectedDeletionDisabled(true);
 
 			String HOME = SCRIPT_DIR + TEST_DIR;
