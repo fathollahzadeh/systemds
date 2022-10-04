@@ -44,6 +44,15 @@ public class GIOFrame {
 		GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame, parallel);
 		FrameReader fr = gr.getReader();
 		FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, sampleSchema, rows, sampleSchema.length);
+		System.out.println(">>>>>>>>>>> "+ frameBlock.getNumRows());
+
+//		for(int i =0; i< frameBlock.getNumRows(); i++){
+//			System.out.println(i+">>>  ");
+//			for(int j=0; j<frameBlock.getNumColumns(); j++){
+//				System.out.print(j+":"+frameBlock.get(i,j).toString()+"\t");
+//			}
+//			System.out.println();
+//		}
 
 	}
 }

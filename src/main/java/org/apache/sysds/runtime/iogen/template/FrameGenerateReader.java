@@ -19,6 +19,7 @@
 
 package org.apache.sysds.runtime.iogen.template;
 
+import com.google.gson.Gson;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -110,10 +111,11 @@ public abstract class FrameGenerateReader extends FrameReader {
 				for(InputSplit inputSplit : splits) {
 					int nrows = 0;
 					TemplateUtil.SplitInfo splitInfo = new TemplateUtil.SplitInfo();
-					ArrayList<Pair<Integer, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(inputSplit, informat, job,
+					ArrayList<Pair<Long, Integer>> beginIndexes =
+						TemplateUtil.getTokenIndexOnMultiLineRecords(inputSplit, informat, job,
 						_props.getRowIndexStructure().getSeqBeginString());
 
-					ArrayList<Pair<Integer, Integer>> endIndexes;
+					ArrayList<Pair<Long, Integer>> endIndexes;
 					int tokenLength = 0;
 					boolean diffBeginEndToken = false;
 					if(!_props.getRowIndexStructure().getSeqBeginString().equals(_props.getRowIndexStructure().getSeqEndString())) {
@@ -129,9 +131,11 @@ public abstract class FrameGenerateReader extends FrameReader {
 					beginIndexes.remove(beginIndexes.size()-1);
 					int i = 0;
 					int j = 0;
+					if(beginIndexes.get(0).getKey() > endIndexes.get(0).getKey())
+						j++;
 					while(i < beginIndexes.size() && j < endIndexes.size()) {
-						Pair<Integer, Integer> p1 = beginIndexes.get(i);
-						Pair<Integer, Integer> p2 = endIndexes.get(j);
+						Pair<Long, Integer> p1 = beginIndexes.get(i);
+						Pair<Long, Integer> p2 = endIndexes.get(j);
 						int n = 0;
 						while(p1.getKey() < p2.getKey() || (p1.getKey() == p2.getKey() && p1.getValue() < p2.getValue())) {
 							n++;
@@ -141,8 +145,8 @@ public abstract class FrameGenerateReader extends FrameReader {
 							p1 = beginIndexes.get(i);
 						}
 						j += n - 1;
-						splitInfo.addIndexAndPosition(beginIndexes.get(i - n).getKey(), endIndexes.get(j).getKey(), beginIndexes.get(i - n).getValue(),
-							endIndexes.get(j).getValue() + tokenLength);
+						splitInfo.addIndexAndPosition(beginIndexes.get(i - n).getKey(), endIndexes.get(j).getKey(),
+							beginIndexes.get(i - n).getValue(), endIndexes.get(j).getValue() + tokenLength);
 						j++;
 						nrows++;
 					}

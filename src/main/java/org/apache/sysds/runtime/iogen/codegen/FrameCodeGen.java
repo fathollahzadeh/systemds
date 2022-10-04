@@ -68,8 +68,8 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 			src.append("int ri = -1; \n");
 			src.append("int beginPosStr, endPosStr; \n");
 			src.append("StringBuilder sb = new StringBuilder(); \n");
-			src.append("int beginIndex = splitInfo.getRecordIndexBegin(0); \n");
-			src.append("int endIndex = splitInfo.getRecordIndexEnd(0); \n");
+			src.append("long beginIndex = splitInfo.getRecordIndexBegin(0); \n");
+			src.append("long endIndex = splitInfo.getRecordIndexEnd(0); \n");
 			src.append("boolean flag = true; \n");
 			src.append("while(flag || sb.length() > 0) { \n");
 			src.append("flag = reader.next(key, value); \n");

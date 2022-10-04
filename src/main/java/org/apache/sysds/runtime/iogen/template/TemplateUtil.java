@@ -75,8 +75,8 @@ public class TemplateUtil {
 
 	public static class SplitInfo {
 		private int nrows;
-		private ArrayList<Integer> recordIndexBegin;
-		private ArrayList<Integer> recordIndexEnd;
+		private ArrayList<Long> recordIndexBegin;
+		private ArrayList<Long> recordIndexEnd;
 		private ArrayList<Integer> recordPositionBegin;
 		private ArrayList<Integer> recordPositionEnd;
 		private String remainString;
@@ -88,7 +88,7 @@ public class TemplateUtil {
 			recordPositionEnd = new ArrayList<>();
 		}
 
-		public void addIndexAndPosition(int beginIndex, int endIndex, int beginPos, int endPos) {
+		public void addIndexAndPosition(Long beginIndex, Long endIndex, int beginPos, int endPos) {
 			recordIndexBegin.add(beginIndex);
 			recordIndexEnd.add(endIndex);
 			recordPositionBegin.add(beginPos);
@@ -111,11 +111,11 @@ public class TemplateUtil {
 			this.remainString = remainString;
 		}
 
-		public int getRecordIndexBegin(int index) {
+		public Long getRecordIndexBegin(int index) {
 			return recordIndexBegin.get(index);
 		}
 
-		public int getRecordIndexEnd(int index) {
+		public Long getRecordIndexEnd(int index) {
 			return recordIndexEnd.get(index);
 		}
 
@@ -128,14 +128,14 @@ public class TemplateUtil {
 		}
 	}
 
-	public static ArrayList<Pair<Integer, Integer>> getTokenIndexOnMultiLineRecords(InputSplit split, TextInputFormat inputFormat, JobConf job,
-		String token) throws IOException {
+	public static ArrayList<Pair<Long, Integer>> getTokenIndexOnMultiLineRecords(InputSplit split,
+		TextInputFormat inputFormat, JobConf job, String token) throws IOException {
 		RecordReader<LongWritable, Text> reader = inputFormat.getRecordReader(split, job, Reporter.NULL);
 		LongWritable key = new LongWritable();
 		Text value = new Text();
-		ArrayList<Pair<Integer, Integer>> result = new ArrayList<>();
+		ArrayList<Pair<Long, Integer>> result = new ArrayList<>();
 
-		int ri = 0;
+		long ri = 0;
 		while(reader.next(key, value)) {
 			String raw = value.toString();
 			int index;

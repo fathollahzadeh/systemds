@@ -20,7 +20,14 @@
 package org.apache.sysds.test.functions.iogen;
 
 import org.apache.sysds.common.Types;
+import org.apache.sysds.runtime.io.FrameReader;
+import org.apache.sysds.runtime.iogen.EXP.Util;
+import org.apache.sysds.runtime.iogen.GenerateReader;
+import org.apache.sysds.runtime.matrix.data.FrameBlock;
+import org.apache.wink.json4j.JSONObject;
 import org.junit.Test;
+
+import java.io.IOException;
 
 public class FrameSingleRowFlatTest extends GenerateReaderFrameTest {
 
@@ -82,5 +89,53 @@ public class FrameSingleRowFlatTest extends GenerateReaderFrameTest {
 		data = new String[][] {{"1", "2", ""}, {"6", "0", "bb"}, {"0", "12", "14"}};
 		schema = new Types.ValueType[] {Types.ValueType.INT32, Types.ValueType.INT32, Types.ValueType.STRING};
 		runGenerateReaderTest(false);
+	}
+
+	@Test
+	public void test66() throws Exception {
+		String sampleRawFileName;
+		String sampleFrameFileName;
+		String sampleRawDelimiter;
+		String schemaFileName;
+		String dataFileName;
+		boolean parallel;
+		long rows = -1;
+
+		String base = "/home/sfathollahzadeh/Documents/GitHub/papers/2023-sigmod-GIO/Experiments/data";
+		sampleRawFileName = base +"/autolead-xml/sample-autolead-xml200.raw"; //System.getProperty("sampleRawFileName");
+		sampleFrameFileName = base+"/autolead-xml/sample-autolead-xml200.frame";//System.getProperty("sampleFrameFileName");
+		sampleRawDelimiter = "\t";
+		schemaFileName = base+"/autolead-xml/autolead-xml.schema";//System.getProperty("schemaFileName");
+		dataFileName = base +"/autolead-xml.dat";
+		parallel = false;//Boolean.parseBoolean(System.getProperty("parallel"));
+		Util util = new Util();
+
+		// read and parse mtd file
+		String mtdFileName = dataFileName + ".mtd";
+		try {
+			String mtd = util.readEntireTextFile(mtdFileName);
+			mtd = mtd.replace("\n", "").replace("\r", "");
+			mtd = mtd.toLowerCase().trim();
+			JSONObject jsonObject = new JSONObject(mtd);
+			if (jsonObject.containsKey("rows")) rows = jsonObject.getLong("rows");
+		} catch (Exception exception) {}
+
+		Types.ValueType[] sampleSchema = util.getSchema(schemaFileName);
+		int ncols = sampleSchema.length;
+
+		String[][] sampleFrameStrings = util.loadFrameData(sampleFrameFileName, sampleRawDelimiter, ncols);
+		FrameBlock sampleFrame = new FrameBlock(sampleSchema, sampleFrameStrings);
+		String sampleRaw = util.readEntireTextFile(sampleRawFileName);
+		GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame, parallel);
+		FrameReader fr = gr.getReader();
+		FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, sampleSchema, rows, sampleSchema.length);
+
+		for(int i =0; i< frameBlock.getNumRows(); i++){
+			System.out.println(i+">>>  ");
+			for(int j=0; j<frameBlock.getNumColumns(); j++){
+				System.out.print(j+":"+frameBlock.get(i,j).toString()+"\t");
+			}
+			System.out.println();
+		}
 	}
 }

@@ -141,6 +141,7 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 				pool.shutdown();
 			}
 			else if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.SeqScatter) {
+				System.out.println("Begin = "+ _props.getRowIndexStructure().getSeqBeginString() +"  End = "+ _props.getRowIndexStructure().getSeqEndString());
 				ArrayList<CountSeqScatteredRowsTask> tasks = new ArrayList<>();
 				for(InputSplit split : splits)
 					tasks.add(new CountSeqScatteredRowsTask(split, informat, job, _props.getRowIndexStructure().getSeqBeginString(),
@@ -262,9 +263,10 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 		public TemplateUtil.SplitInfo call() throws Exception {
 			TemplateUtil.SplitInfo splitInfo = new TemplateUtil.SplitInfo();
 			int nrows = 0;
-			ArrayList<Pair<Integer, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split, _inputFormat, _jobConf,
+			ArrayList<Pair<Long, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split,
+				_inputFormat, _jobConf,
 				_beginString);
-			ArrayList<Pair<Integer, Integer>> endIndexes;
+			ArrayList<Pair<Long, Integer>> endIndexes;
 			int tokenLength = 0;
 			boolean diffBeginEndToken = false;
 			if(!_beginString.equals(_endString)) {
@@ -280,9 +282,11 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 			beginIndexes.remove(beginIndexes.size()-1);
 			int i = 0;
 			int j = 0;
+			if(beginIndexes.get(0).getKey() > endIndexes.get(0).getKey())
+				j++;
 			while(i < beginIndexes.size() && j < endIndexes.size()) {
-				Pair<Integer, Integer> p1 = beginIndexes.get(i);
-				Pair<Integer, Integer> p2 = endIndexes.get(j);
+				Pair<Long, Integer> p1 = beginIndexes.get(i);
+				Pair<Long, Integer> p2 = endIndexes.get(j);
 				int n = 0;
 				while(p1.getKey() < p2.getKey() || (p1.getKey() == p2.getKey() && p1.getValue() < p2.getValue())) {
 					n++;
