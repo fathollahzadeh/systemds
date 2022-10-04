@@ -32,8 +32,11 @@ public class GIOFrame {
 			mtd = mtd.replace("\n", "").replace("\r", "");
 			mtd = mtd.toLowerCase().trim();
 			JSONObject jsonObject = new JSONObject(mtd);
-			if (jsonObject.containsKey("rows")) rows = jsonObject.getLong("rows");
-		} catch (Exception exception) {}
+			if(jsonObject.containsKey("rows"))
+				rows = jsonObject.getLong("rows");
+		}
+		catch(Exception exception) {
+		}
 
 		Types.ValueType[] sampleSchema = util.getSchema(schemaFileName);
 		int ncols = sampleSchema.length;
@@ -44,15 +47,5 @@ public class GIOFrame {
 		GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame, parallel);
 		FrameReader fr = gr.getReader();
 		FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, sampleSchema, rows, sampleSchema.length);
-		System.out.println(">>>>>>>>>>> "+ frameBlock.getNumRows());
-
-//		for(int i =0; i< frameBlock.getNumRows(); i++){
-//			System.out.println(i+">>>  ");
-//			for(int j=0; j<frameBlock.getNumColumns(); j++){
-//				System.out.print(j+":"+frameBlock.get(i,j).toString()+"\t");
-//			}
-//			System.out.println();
-//		}
-
 	}
 }
