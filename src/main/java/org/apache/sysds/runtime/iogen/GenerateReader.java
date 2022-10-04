@@ -39,8 +39,8 @@ public abstract class GenerateReader {
 
 	public GenerateReader(SampleProperties sampleProperties) throws Exception {
 
-		FormatIdentifying formatIdentifying = sampleProperties.getDataType().isMatrix() ? new FormatIdentifying(sampleProperties.getSampleRaw(),
-			sampleProperties.getSampleMatrix()) : new FormatIdentifying(sampleProperties.getSampleRaw(),
+		FormatIdentifyer formatIdentifying = sampleProperties.getDataType().isMatrix() ? new FormatIdentifyer(sampleProperties.getSampleRaw(),
+			sampleProperties.getSampleMatrix()) : new FormatIdentifyer(sampleProperties.getSampleRaw(),
 			sampleProperties.getSampleFrame());
 
 		properties = formatIdentifying.getFormatProperties();
