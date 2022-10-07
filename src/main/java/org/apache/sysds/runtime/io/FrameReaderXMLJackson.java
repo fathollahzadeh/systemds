@@ -52,28 +52,24 @@ public class FrameReaderXMLJackson {
 		//check existence and non-empty file
 		checkValidInputFile(fileSystem, path);
 
+		// allocate output frame block
+		String[] lnames = createOutputNamesFromSchemaMap(schemaMap);
+
 		TextInputFormat informat = new TextInputFormat();
 		informat.configure(jobConf);
 		InputSplit[] splits = informat.getSplits(jobConf, 1);
 		splits = IOUtilFunctions.sortInputSplits(splits);
 
-		// allocate output frame block
-		Types.ValueType[] lschema = createOutputSchema(schema, clen);
-		String[] lnames = createOutputNamesFromSchemaMap(schemaMap);
+		FrameBlock ret = computeSizeAndCreateOutputFrameBlock(informat, jobConf, schema, lnames, splits, beginToken, endToken);
 
-		FrameBlock ret = computeSizeAndCreateOutputFrameBlock(informat, jobConf, schema, lnames, splits, path,
-			beginToken, endToken);
-
-		readXMLLFrameFromHDFS(informat, splits, jobConf, schema, schemaMap, ret);
 		return ret;
 	}
 
-	protected void readXMLLFrameFromHDFS(TextInputFormat informat, InputSplit[] splits, JobConf job,
+	protected void readXMLLFrameFromHDFS(InputSplit[] splits, TextInputFormat informat, JobConf jobConf,
 		Types.ValueType[] schema, Map<String, Integer> schemaMap, FrameBlock dest) throws IOException {
-
 		int rpos = 0;
 		for(int i = 0; i < splits.length; i++) {
-			RecordReader<LongWritable, Text> reader = informat.getRecordReader(splits[i], job, Reporter.NULL);
+			RecordReader<LongWritable, Text> reader = informat.getRecordReader(splits[i], jobConf, Reporter.NULL);
 			LongWritable key = new LongWritable();
 			Text value = new Text();
 			TemplateUtil.SplitInfo splitInfo = _offsets.getSeqOffsetPerSplit(i);
@@ -83,7 +79,7 @@ public class FrameReaderXMLJackson {
 	}
 
 	private FrameBlock computeSizeAndCreateOutputFrameBlock(TextInputFormat informat, JobConf job,
-		Types.ValueType[] schema, String[] names, InputSplit[] splits, Path path, String beginToken, String endToken)
+		Types.ValueType[] schema, String[] names, InputSplit[] splits, String beginToken, String endToken)
 		throws IOException, DMLRuntimeException {
 
 		int row = 0;
@@ -285,7 +281,7 @@ public class FrameReaderXMLJackson {
 		}
 	}
 
-	private String[] createOutputNamesFromSchemaMap(Map<String, Integer> schemaMap) {
+	protected String[] createOutputNamesFromSchemaMap(Map<String, Integer> schemaMap) {
 		String[] names = new String[schemaMap.size()];
 		schemaMap.forEach((key, value) -> names[value] = key);
 		return names;

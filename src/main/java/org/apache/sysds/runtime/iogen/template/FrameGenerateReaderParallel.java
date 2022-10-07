@@ -141,7 +141,6 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 				pool.shutdown();
 			}
 			else if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.SeqScatter) {
-				System.out.println("Begin = "+ _props.getRowIndexStructure().getSeqBeginString() +"  End = "+ _props.getRowIndexStructure().getSeqEndString());
 				ArrayList<CountSeqScatteredRowsTask> tasks = new ArrayList<>();
 				for(InputSplit split : splits)
 					tasks.add(new CountSeqScatteredRowsTask(split, informat, job, _props.getRowIndexStructure().getSeqBeginString(),
