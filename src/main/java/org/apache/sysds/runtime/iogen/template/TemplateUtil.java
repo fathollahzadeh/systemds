@@ -86,6 +86,7 @@ public class TemplateUtil {
 			recordIndexEnd = new ArrayList<>();
 			recordPositionBegin = new ArrayList<>();
 			recordPositionEnd = new ArrayList<>();
+			remainString = "";
 		}
 
 		public void addIndexAndPosition(Long beginIndex, Long endIndex, int beginPos, int endPos) {
@@ -97,6 +98,10 @@ public class TemplateUtil {
 
 		public int getNrows() {
 			return nrows;
+		}
+
+		public int getListSize() {
+			return recordIndexBegin.size();
 		}
 
 		public void setNrows(int nrows) {
@@ -152,7 +157,6 @@ public class TemplateUtil {
 			while(true);
 			ri++;
 		}
-		result.add(new Pair<>(ri, 0));
 		return result;
 	}
 
@@ -166,22 +170,21 @@ public class TemplateUtil {
 		return endPos;
 	}
 
-
-	public static String getStringChunkOfBufferReader(BufferedReader br, String remainedStr,int chunkSize){
+	public static String getStringChunkOfBufferReader(BufferedReader br, String remainedStr, int chunkSize) {
 		StringBuilder sb = new StringBuilder();
 		String str;
 		int readSize = 0;
 		try {
-			while((str = br.readLine()) != null && readSize<chunkSize) {
+			while((str = br.readLine()) != null && readSize < chunkSize) {
 				sb.append(str).append("\n");
 				readSize += str.length();
 			}
 		}
-		catch(Exception ex){
+		catch(Exception ex) {
 
 		}
-		if(sb.length() >0) {
-			if(remainedStr!=null && remainedStr.length() >0)
+		if(sb.length() > 0) {
+			if(remainedStr != null && remainedStr.length() > 0)
 				return remainedStr + sb;
 			else
 				return sb.toString();
@@ -189,7 +192,8 @@ public class TemplateUtil {
 		else
 			return null;
 	}
-	protected int getColIndex(HashMap<String, Integer> colKeyPatternMap, String key){
+
+	protected int getColIndex(HashMap<String, Integer> colKeyPatternMap, String key) {
 		return colKeyPatternMap.getOrDefault(key, -1);
 	}
 }

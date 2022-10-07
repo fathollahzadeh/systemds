@@ -27,6 +27,8 @@ public class SystemDS {
 		String schemaMapFileName = null;
 		boolean parallel;
 		Types.ValueType[] schema;
+		String beginToken = null;
+		String endToken = null;
 
 		Util util = new Util();
 		schemaFileName = System.getProperty("schemaFileName");
@@ -65,6 +67,12 @@ public class SystemDS {
 
 			if(jsonObject.containsKey("indSep"))
 				indSep = jsonObject.getString("indSep");
+
+			if(jsonObject.containsKey("begin_token"))
+				beginToken = jsonObject.getString("begin_token");
+
+			if(jsonObject.containsKey("end_token"))
+				endToken = jsonObject.getString("end_token");
 
 		}
 		catch(Exception exception) {
@@ -112,7 +120,6 @@ public class SystemDS {
 			matrixReader.readMatrixFromHDFS(dataFileName, rows, cols, -1, -1);
 		}
 		else {
-
 			FrameBlock frameBlock = null;
 			if(!parallel) {
 				switch(format) {
@@ -158,6 +165,14 @@ public class SystemDS {
 						FrameReader frPaper = new FrameReaderTextAMiner(propertiesAMinerPaper);
 						frameBlock = frPaper.readFrameFromHDFS(dataFileName, null, null, -1,-1);
 						break;
+					case "xml":
+						schema = util.getSchema(schemaFileName);
+						cols = schema.length;
+						schemaMapFileName = System.getProperty("schemaMapFileName");
+						Map<String, Integer> xmlSchemaMap = util.getSchemaMap(schemaMapFileName);
+						FrameReaderXMLJackson jacksonXML = new FrameReaderXMLJackson();
+						frameBlock = jacksonXML.readFrameFromHDFS(dataFileName, schema, xmlSchemaMap, beginToken,
+							endToken, -1, cols);
 				}
 			}
 			else {

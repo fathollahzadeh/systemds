@@ -19,6 +19,13 @@
 
 package org.apache.sysds.test.functions.iogen;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ValueNode;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.google.gson.Gson;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.runtime.io.FrameReader;
 import org.apache.sysds.runtime.iogen.EXP.Util;
@@ -28,6 +35,11 @@ import org.apache.wink.json4j.JSONObject;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class FrameSingleRowFlatTest extends GenerateReaderFrameTest {
 
@@ -89,6 +101,52 @@ public class FrameSingleRowFlatTest extends GenerateReaderFrameTest {
 		data = new String[][] {{"1", "2", ""}, {"6", "0", "bb"}, {"0", "12", "14"}};
 		schema = new Types.ValueType[] {Types.ValueType.INT32, Types.ValueType.INT32, Types.ValueType.STRING};
 		runGenerateReaderTest(false);
+	}
+
+	@Test
+	public void test77() throws JsonProcessingException {
+		String str="<student> \n"
+			+"<name>1</name>\n"+
+			"</student>";
+
+		XmlMapper mapper = new XmlMapper();
+		JsonNode root = mapper.readTree(str);
+		Map<String, String> map = new HashMap<>();
+		addKeys("", root, map, new ArrayList<>());
+		Gson gson = new Gson();
+		System.out.println(gson.toJson(map));
+	}
+
+	private void addKeys(String currentPath, JsonNode jsonNode, Map<String, String> map, List<Integer> suffix) {
+		if (jsonNode.isObject()) {
+			ObjectNode objectNode = (ObjectNode) jsonNode;
+			Iterator<Map.Entry<String, JsonNode>> iter = objectNode.fields();
+			String pathPrefix = currentPath.isEmpty() ? "" : currentPath + "/";
+
+			while (iter.hasNext()) {
+				Map.Entry<String, JsonNode> entry = iter.next();
+				addKeys(pathPrefix + entry.getKey(), entry.getValue(), map, suffix);
+			}
+		} else if (jsonNode.isArray()) {
+			ArrayNode arrayNode = (ArrayNode) jsonNode;
+			for (int i = 0; i < arrayNode.size(); i++) {
+				suffix.add(i + 1);
+				addKeys(currentPath+"-"+i, arrayNode.get(i), map, suffix);
+				if (i + 1 <arrayNode.size()){
+					suffix.remove(suffix.size() - 1);
+				}
+			}
+
+		} else if (jsonNode.isValueNode()) {
+			if (currentPath.contains("/") && !currentPath.contains("-")) {
+				for (int i = 0; i < suffix.size(); i++) {
+					currentPath += "/" + suffix.get(i);
+				}
+				suffix = new ArrayList<>();
+			}
+			ValueNode valueNode = (ValueNode) jsonNode;
+			map.put("/"+currentPath, valueNode.asText());
+		}
 	}
 
 	@Test

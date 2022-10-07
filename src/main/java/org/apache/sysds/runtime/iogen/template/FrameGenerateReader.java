@@ -182,6 +182,7 @@ public abstract class FrameGenerateReader extends FrameReader {
 		catch(Exception e) {
 			throw new IOException("Thread pool Error " + e.getMessage(), e);
 		}
+		System.out.println("ROW >>>>>>> "+ row);
 		FrameBlock ret = createOutputFrameBlock(schema, names, row);
 		return ret;
 	}
