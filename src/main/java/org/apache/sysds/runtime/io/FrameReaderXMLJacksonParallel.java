@@ -131,8 +131,7 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 			int splitIndex = 0;
 			for(InputSplit split : splits) {
 				Integer nextOffset = splitIndex + 1 == splits.length ? null : splitIndex + 1;
-				tasks.add(
-					new CountRowsTask(_offsets, splitIndex, nextOffset, split, informat, job, beginToken, endToken));
+				tasks.add(new CountRowsTask(_offsets, splitIndex, nextOffset, split, informat, job, beginToken, endToken));
 				splitIndex++;
 			}
 
