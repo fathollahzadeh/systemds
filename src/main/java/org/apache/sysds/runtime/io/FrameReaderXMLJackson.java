@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.google.gson.Gson;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -61,6 +62,7 @@ public class FrameReaderXMLJackson {
 		splits = IOUtilFunctions.sortInputSplits(splits);
 
 		FrameBlock ret = computeSizeAndCreateOutputFrameBlock(informat, jobConf, schema, lnames, splits, beginToken, endToken);
+		readXMLLFrameFromHDFS(splits, informat, jobConf, schema, schemaMap, ret);
 
 		return ret;
 	}
@@ -78,7 +80,7 @@ public class FrameReaderXMLJackson {
 		}
 	}
 
-	private FrameBlock computeSizeAndCreateOutputFrameBlock(TextInputFormat informat, JobConf job,
+	protected FrameBlock computeSizeAndCreateOutputFrameBlock(TextInputFormat informat, JobConf job,
 		Types.ValueType[] schema, String[] names, InputSplit[] splits, String beginToken, String endToken)
 		throws IOException, DMLRuntimeException {
 
@@ -165,7 +167,6 @@ public class FrameReaderXMLJackson {
 	protected static int readXMLFrameFromInputSplit(RecordReader<LongWritable, Text> reader,
 		TemplateUtil.SplitInfo splitInfo, LongWritable key, Text value, int rpos, Types.ValueType[] schema,
 		Map<String, Integer> schemaMap, FrameBlock dest) throws IOException {
-
 		int rlen = splitInfo.getNrows();
 		int ri;
 		int row = 0;
@@ -176,7 +177,6 @@ public class FrameReaderXMLJackson {
 		long beginIndex = splitInfo.getRecordIndexBegin(0);
 		long endIndex = splitInfo.getRecordIndexEnd(0);
 		boolean flag;
-
 		XmlMapper mapper = new XmlMapper();
 		if(sb.length() > 0) {
 			ri = 0;

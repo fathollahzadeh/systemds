@@ -33,6 +33,7 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.conf.ConfigurationManager;
+import org.apache.sysds.hops.OptimizerUtils;
 import org.apache.sysds.runtime.DMLRuntimeException;
 import org.apache.sysds.runtime.iogen.template.TemplateUtil;
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
@@ -58,6 +59,10 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 	protected int _rLen;
 	protected int _cLen;
 
+	public FrameReaderXMLJacksonParallel() {
+		this._numThreads = OptimizerUtils.getParallelTextReadParallelism();
+	}
+
 	@Override public FrameBlock readFrameFromHDFS(String fname, Types.ValueType[] schema,
 		Map<String, Integer> schemaMap, String beginToken, String endToken, long rlen, long clen)
 		throws IOException, DMLRuntimeException {
@@ -78,7 +83,7 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 
 		String[] names = createOutputNamesFromSchemaMap(schemaMap);
 		// allocate output frame block
-		FrameBlock ret = computeSizeAndCreateOutputFrameBlock(schema, names, splits, path, rlen, clen, beginToken, endToken);
+		FrameBlock ret = computeSizeAndCreateOutputFrameBlock(informat, job, schema, names, splits, beginToken, endToken);
 
 		// core read (sequential/parallel)
 		readXMLLFrameFromHDFS(splits, informat, job, schema, schemaMap, ret);
@@ -105,15 +110,11 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 		}
 	}
 
-	private FrameBlock computeSizeAndCreateOutputFrameBlock(Types.ValueType[] schema, String[] names,
-		InputSplit[] splits, Path path, long rlen, long clen, String beginToken, String endToken) throws IOException,
-		DMLRuntimeException {
+	@Override protected FrameBlock computeSizeAndCreateOutputFrameBlock(TextInputFormat informat, JobConf job,
+		Types.ValueType[] schema, String[] names, InputSplit[] splits, String beginToken, String endToken)
+		throws IOException, DMLRuntimeException {
 		_rLen = 0;
 		_cLen = names.length;
-
-		FileInputFormat.addInputPath(job, path);
-		TextInputFormat informat = new TextInputFormat();
-		informat.configure(job);
 
 		// count rows in parallel per split
 		try {
@@ -126,23 +127,21 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 				_offsets.setOffsetPerSplit(i, 0);
 			}
 
-
 			ArrayList<CountRowsTask> tasks = new ArrayList<>();
 			int splitIndex = 0;
 			for(InputSplit split : splits) {
-				Integer nextOffset = splitIndex +1 == splits.length ? null : splitIndex +1;
-				tasks.add(new CountRowsTask(_offsets, splitIndex, nextOffset, split,informat ,job, beginToken, endToken));
+				Integer nextOffset = splitIndex + 1 == splits.length ? null : splitIndex + 1;
+				tasks.add(
+					new CountRowsTask(_offsets, splitIndex, nextOffset, split, informat, job, beginToken, endToken));
 				splitIndex++;
 			}
 
 			// collect row counts for offset computation
-			// early error notify in case not all tasks successful
-			_offsets = new TemplateUtil.SplitOffsetInfos(tasks.size());
 			int i = 0;
 			for(Future<Integer> rc : pool.invokeAll(tasks)) {
 				Integer nrows = rc.get();
 				_offsets.setOffsetPerSplit(i, _rLen);
-				_rLen = _rLen + nrows;
+				_rLen += nrows;
 				i++;
 			}
 			pool.shutdown();
@@ -151,26 +150,9 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 		catch(Exception e) {
 			throw new IOException("Thread pool Error " + e.getMessage(), e);
 		}
-
-		// robustness for wrong dimensions which are already compiled into the plan
-		if(rlen != -1 && _rLen != rlen) {
-			String msg = "Read frame dimensions differ from meta data: [" + _rLen + "x" + _cLen + "] vs. [" + rlen + "x" + clen + "].";
-			if(rlen < _rLen || clen < _cLen) {
-				// a) specified matrix dimensions too small
-				throw new DMLRuntimeException(msg);
-			}
-			else {
-				// b) specified matrix dimensions too large -> padding and warning
-				LOG.warn(msg);
-				_rLen = (int) rlen;
-				_cLen = (int) clen;
-			}
-		}
-
 		FrameBlock ret = createOutputFrameBlock(schema, names, _rLen);
 		return ret;
 	}
-
 
 	private static class CountRowsTask implements Callable<Integer> {
 		private final TemplateUtil.SplitOffsetInfos _offsets;
@@ -182,7 +164,7 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 		private final String _beginToken;
 		private final String _endToken;
 
-		public CountRowsTask(TemplateUtil.SplitOffsetInfos offsets,Integer curOffset, Integer nextOffset,
+		public CountRowsTask(TemplateUtil.SplitOffsetInfos offsets, Integer curOffset, Integer nextOffset,
 			InputSplit split, TextInputFormat inputFormat, JobConf job, String beginToken, String endToken) {
 			_offsets = offsets;
 			_curOffset = curOffset;
@@ -194,8 +176,7 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 			_endToken = endToken;
 		}
 
-		@Override
-		public Integer call() throws Exception {
+		@Override public Integer call() throws Exception {
 			int nrows = 0;
 
 			ArrayList<Pair<Long, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split,
@@ -226,8 +207,9 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 					p1 = beginIndexes.get(i);
 				}
 				j += n - 1;
-				_offsets.getSeqOffsetPerSplit(_curOffset).addIndexAndPosition(beginIndexes.get(i - n).getKey(),
-					endIndexes.get(j).getKey(),	beginIndexes.get(i - n).getValue(), endIndexes.get(j).getValue() + tokenLength);
+				_offsets.getSeqOffsetPerSplit(_curOffset)
+					.addIndexAndPosition(beginIndexes.get(i - n).getKey(), endIndexes.get(j).getKey(),
+						beginIndexes.get(i - n).getValue(), endIndexes.get(j).getValue() + tokenLength);
 				j++;
 				nrows++;
 			}
@@ -257,7 +239,6 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 		}
 	}
 
-
 	private class ReadTask implements Callable<Long> {
 
 		private final InputSplit _split;
@@ -277,8 +258,7 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 			_schemaMap = schemaMap;
 		}
 
-		@Override
-		public Long call() throws IOException {
+		@Override public Long call() throws IOException {
 			RecordReader<LongWritable, Text> reader = _informat.getRecordReader(_split, job, Reporter.NULL);
 			LongWritable key = new LongWritable();
 			Text value = new Text();

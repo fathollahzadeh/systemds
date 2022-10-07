@@ -89,7 +89,8 @@ public class SystemDS {
 						matrixReader.readMatrixFromHDFS(dataFileName, rows, cols, -1, -1);
 						break;
 					case "libsvm":
-						FileFormatPropertiesLIBSVM propertiesLIBSVM = new FileFormatPropertiesLIBSVM(sep, indSep, false);
+						FileFormatPropertiesLIBSVM propertiesLIBSVM = new FileFormatPropertiesLIBSVM(sep, indSep,
+							false);
 						matrixReader = new ReaderTextLIBSVM(propertiesLIBSVM);
 						matrixReader.readMatrixFromHDFS(dataFileName, rows, cols, -1, -1);
 						break;
@@ -106,7 +107,8 @@ public class SystemDS {
 						matrixReader.readMatrixFromHDFS(dataFileName, rows, cols, -1, -1);
 						break;
 					case "libsvm":
-						FileFormatPropertiesLIBSVM propertiesLIBSVM = new FileFormatPropertiesLIBSVM(sep, indSep, false);
+						FileFormatPropertiesLIBSVM propertiesLIBSVM = new FileFormatPropertiesLIBSVM(sep, indSep,
+							false);
 						matrixReader = new ReaderTextLIBSVMParallel(propertiesLIBSVM);
 						matrixReader.readMatrixFromHDFS(dataFileName, rows, cols, -1, -1);
 						break;
@@ -139,16 +141,19 @@ public class SystemDS {
 						switch(config.toLowerCase()) {
 							case "gson":
 								FrameReaderJSONGson frameReaderJSONGson = new FrameReaderJSONGson();
-								frameBlock = frameReaderJSONGson.readFrameFromHDFS(dataFileName, schema, schemaMap, rows, cols);
+								frameBlock = frameReaderJSONGson.readFrameFromHDFS(dataFileName, schema, schemaMap,
+									rows, cols);
 								break;
 
 							case "jackson":
 								FrameReaderJSONJackson frameReaderJSONJackson = new FrameReaderJSONJackson();
-								frameBlock = frameReaderJSONJackson.readFrameFromHDFS(dataFileName, schema, schemaMap, rows, cols);
+								frameBlock = frameReaderJSONJackson.readFrameFromHDFS(dataFileName, schema, schemaMap,
+									rows, cols);
 								break;
 							case "json4j":
 								FrameReaderJSONL frameReaderJSONL = new FrameReaderJSONL();
-								frameBlock = frameReaderJSONL.readFrameFromHDFS(dataFileName, schema, schemaMap, rows, cols);
+								frameBlock = frameReaderJSONL.readFrameFromHDFS(dataFileName, schema, schemaMap, rows,
+									cols);
 								break;
 							default:
 								throw new IOException("JSON Config don't support!!" + config);
@@ -158,12 +163,12 @@ public class SystemDS {
 					case "aminer-author":
 						FileFormatPropertiesAMiner propertiesAMinerAuthor = new FileFormatPropertiesAMiner("author");
 						FrameReader frAuthor = new FrameReaderTextAMiner(propertiesAMinerAuthor);
-						frameBlock = frAuthor.readFrameFromHDFS(dataFileName, null, null, -1,-1);
+						frameBlock = frAuthor.readFrameFromHDFS(dataFileName, null, null, -1, -1);
 						break;
 					case "aminer-paper":
 						FileFormatPropertiesAMiner propertiesAMinerPaper = new FileFormatPropertiesAMiner("paper");
 						FrameReader frPaper = new FrameReaderTextAMiner(propertiesAMinerPaper);
-						frameBlock = frPaper.readFrameFromHDFS(dataFileName, null, null, -1,-1);
+						frameBlock = frPaper.readFrameFromHDFS(dataFileName, null, null, -1, -1);
 						break;
 					case "xml":
 						schema = util.getSchema(schemaFileName);
@@ -193,16 +198,19 @@ public class SystemDS {
 						switch(config.toLowerCase()) {
 							case "gson":
 								FrameReaderJSONGsonParallel frameReaderJSONGson = new FrameReaderJSONGsonParallel();
-								frameBlock = frameReaderJSONGson.readFrameFromHDFS(dataFileName, schema, schemaMap, rows, cols);
+								frameBlock = frameReaderJSONGson.readFrameFromHDFS(dataFileName, schema, schemaMap,
+									rows, cols);
 								break;
 
 							case "jackson":
 								FrameReaderJSONJacksonParallel frameReaderJSONJackson = new FrameReaderJSONJacksonParallel();
-								frameBlock = frameReaderJSONJackson.readFrameFromHDFS(dataFileName, schema, schemaMap, rows, cols);
+								frameBlock = frameReaderJSONJackson.readFrameFromHDFS(dataFileName, schema, schemaMap,
+									rows, cols);
 								break;
 							case "json4j":
 								FrameReaderJSONLParallel frameReaderJSONL = new FrameReaderJSONLParallel();
-								frameBlock = frameReaderJSONL.readFrameFromHDFS(dataFileName, schema, schemaMap, rows, cols);
+								frameBlock = frameReaderJSONL.readFrameFromHDFS(dataFileName, schema, schemaMap, rows,
+									cols);
 								break;
 							default:
 								throw new IOException("JSON Config don't support!!" + config);
@@ -211,16 +219,26 @@ public class SystemDS {
 					case "aminer-author":
 						FileFormatPropertiesAMiner propertiesAMinerAuthor = new FileFormatPropertiesAMiner("author");
 						FrameReader frAuthor = new FrameReaderTextAMinerParallel(propertiesAMinerAuthor);
-						frameBlock = frAuthor.readFrameFromHDFS(dataFileName, null, null, -1,-1);
+						frameBlock = frAuthor.readFrameFromHDFS(dataFileName, null, null, -1, -1);
 						break;
 					case "aminer-paper":
 						FileFormatPropertiesAMiner propertiesAMinerPaper = new FileFormatPropertiesAMiner("paper");
 						FrameReader frPaper = new FrameReaderTextAMinerParallel(propertiesAMinerPaper);
-						frameBlock = frPaper.readFrameFromHDFS(dataFileName, null, null, -1,-1);
+						frameBlock = frPaper.readFrameFromHDFS(dataFileName, null, null, -1, -1);
 						break;
+
+					case "xml":
+						schema = util.getSchema(schemaFileName);
+						cols = schema.length;
+						schemaMapFileName = System.getProperty("schemaMapFileName");
+						Map<String, Integer> xmlSchemaMap = util.getSchemaMap(schemaMapFileName);
+						FrameReaderXMLJacksonParallel jacksonXML = new FrameReaderXMLJacksonParallel();
+						frameBlock = jacksonXML.readFrameFromHDFS(dataFileName, schema, xmlSchemaMap, beginToken,
+							endToken, -1, cols);
+
 				}
 			}
-			
+
 		}
 
 	}
