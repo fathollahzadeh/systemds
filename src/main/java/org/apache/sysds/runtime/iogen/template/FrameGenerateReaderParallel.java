@@ -189,8 +189,6 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 				_cLen = (int) clen;
 			}
 		}
-
-		System.out.println("ROOOOOOOOOOOOOOOOOO >> "+ _rLen);
 		FrameBlock ret = createOutputFrameBlock(lschema, lnames, _rLen);
 		return ret;
 	}
