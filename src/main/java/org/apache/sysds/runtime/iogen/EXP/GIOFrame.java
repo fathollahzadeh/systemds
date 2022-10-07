@@ -40,7 +40,6 @@ public class GIOFrame {
 
 		Types.ValueType[] sampleSchema = util.getSchema(schemaFileName);
 		int ncols = sampleSchema.length;
-
 		String[][] sampleFrameStrings = util.loadFrameData(sampleFrameFileName, sampleRawDelimiter, ncols);
 		FrameBlock sampleFrame = new FrameBlock(sampleSchema, sampleFrameStrings);
 		String sampleRaw = util.readEntireTextFile(sampleRawFileName);
