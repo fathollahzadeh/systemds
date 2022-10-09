@@ -424,13 +424,16 @@ public class FormatIdentifyer {
 									break;
 							}
 							minSuffixStringLength = Math.min(minSuffixStringLength, indexBeginString);
-							suffixes.add(str.substring(indexBeginString + reverseBeginString.length()));
+							suffixes.add(new StringBuilder(str.substring(0,
+								indexBeginString + reverseBeginString.length())).reverse().toString());
 						}
 						else
 							suffixes.add(str);
 					}
 					StringBuilder sbEndString = new StringBuilder();
 					for(int i = 0; i < minSuffixStringLength; i++) {
+						if(suffixes.get(0).length() == 0)
+							break;
 						char intersectChar = suffixes.get(0).charAt(i);
 						if(intersectChar == '\n')
 							break;
@@ -449,7 +452,7 @@ public class FormatIdentifyer {
 					if(sbEndString.length() == 0)
 						endString = beginString;
 					else
-						endString = sbEndString.reverse().toString();
+						endString = sbEndString.toString();
 					updateMapsAndExtractAllSuffixStringsOfColsMultiLine(beginString, endString);
 					rowIndexStructure.setSeqBeginString(beginString);
 					rowIndexStructure.setSeqEndString(endString);
@@ -1135,8 +1138,7 @@ public class FormatIdentifyer {
 			for(int c = 0; c < ncols; c++) {
 				if(mapRow[r][c] != -1) {
 					if(mapRow[r][c] != beginIndexes.get(i - n).getKey())
-						this.mapCol[r][c] += this.sampleRawIndexes.get(beginIndexes.get(i - n).getKey()).getRawLength() - beginIndexes.get(i - n)
-							.getValue();
+						this.mapCol[r][c] += this.sampleRawIndexes.get(beginIndexes.get(i - n).getKey()).getRawLength() - beginIndexes.get(i - n).getValue();
 					else
 						this.mapCol[r][c] -= beginIndexes.get(i - n).getValue();
 
