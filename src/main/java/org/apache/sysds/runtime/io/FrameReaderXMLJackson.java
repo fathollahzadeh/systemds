@@ -2,18 +2,15 @@ package org.apache.sysds.runtime.io;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.google.gson.Gson;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
@@ -22,7 +19,6 @@ import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.conf.ConfigurationManager;
 import org.apache.sysds.runtime.DMLRuntimeException;
-import org.apache.sysds.runtime.iogen.RowIndexStructure;
 import org.apache.sysds.runtime.iogen.template.TemplateUtil;
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
 import org.apache.sysds.runtime.matrix.data.Pair;
@@ -37,7 +33,6 @@ import java.util.Map;
 
 import static org.apache.sysds.runtime.io.FrameReader.checkValidInputFile;
 import static org.apache.sysds.runtime.io.FrameReader.createOutputFrameBlock;
-import static org.apache.sysds.runtime.io.FrameReader.createOutputSchema;
 
 public class FrameReaderXMLJackson {
 	protected TemplateUtil.SplitOffsetInfos _offsets;
@@ -99,9 +94,9 @@ public class FrameReaderXMLJackson {
 				int nrows = 0;
 				TemplateUtil.SplitInfo splitInfo = _offsets.getSeqOffsetPerSplit(splitIndex);
 				ArrayList<Pair<Long, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(inputSplit,
-					informat, job, beginToken);
+					informat, job, beginToken).getKey();
 				ArrayList<Pair<Long, Integer>> endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(inputSplit,
-					informat, job, endToken);
+					informat, job, endToken).getKey();
 				int tokenLength = endToken.length();
 
 				int i = 0;

@@ -179,9 +179,9 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 			int nrows = 0;
 
 			ArrayList<Pair<Long, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split,
-				_inputFormat, _job, _beginToken);
+				_inputFormat, _job, _beginToken).getKey();
 			ArrayList<Pair<Long, Integer>> endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split,
-				_inputFormat, _job, _endToken);
+				_inputFormat, _job, _endToken).getKey();
 			int tokenLength = _endToken.length();
 
 			int i = 0;

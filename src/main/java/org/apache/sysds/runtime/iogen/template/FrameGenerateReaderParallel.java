@@ -160,6 +160,8 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 					splitIndex++;
 				}
 
+				System.out.println(_props.getRowIndexStructure().getSeqBeginString()+"  "+_props.getRowIndexStructure().getSeqEndString());
+
 				// collect row counts for offset computation
 				int i = 0;
 				for(Future<Integer> rc : pool.invokeAll(tasks)) {
@@ -277,14 +279,20 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 		@Override public Integer call() throws Exception {
 			int nrows = 0;
 			TemplateUtil.SplitInfo splitInfo = _offsets.getSeqOffsetPerSplit(_curOffset);
-			ArrayList<Pair<Long, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split,
-				_inputFormat, _job, _beginToken);
+
+			long lastLineIndex;
+			Pair<ArrayList<Pair<Long, Integer>>, Long> tokenPair =  TemplateUtil.getTokenIndexOnMultiLineRecords(
+				_split, _inputFormat, _job, _endToken);
+
+			ArrayList<Pair<Long, Integer>> beginIndexes = tokenPair.getKey();
+			lastLineIndex = tokenPair.getValue();
 
 			ArrayList<Pair<Long, Integer>> endIndexes;
 			int tokenLength = 0;
 			if(!_beginToken.equals(_endToken)) {
-				endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split, _inputFormat, _job, _endToken);
+				endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split, _inputFormat, _job, _endToken).getKey();
 				tokenLength = _endToken.length();
+				lastLineIndex = -1;
 			}
 			else {
 				endIndexes = new ArrayList<>();
@@ -297,6 +305,11 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 			if(beginIndexes.get(0).getKey() > endIndexes.get(0).getKey()) {
 				nrows++;
 				for(; j < endIndexes.size() && beginIndexes.get(0).getKey() > endIndexes.get(j).getKey(); j++);
+			}
+			else if(_curOffset !=0 && _beginToken.equals(_endToken)){
+				splitInfo.addIndexAndPosition(0l, endIndexes.get(0).getKey(),
+					0, endIndexes.get(0).getValue() + tokenLength);
+				nrows++;
 			}
 
 			while(i < beginIndexes.size() && j < endIndexes.size()) {
@@ -333,6 +346,11 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 					}
 					_offsets.getSeqOffsetPerSplit(_nextOffset).setRemainString(sb.toString());
 				}
+			}
+			else if(lastLineIndex !=-1) {
+				splitInfo.addIndexAndPosition(endIndexes.get(endIndexes.size()-1).getKey(), lastLineIndex,
+					endIndexes.get(endIndexes.size()-1).getValue(), 0);
+				nrows++;
 			}
 			splitInfo.setNrows(nrows);
 			_offsets.getSeqOffsetPerSplit(_curOffset).setNrows(nrows);

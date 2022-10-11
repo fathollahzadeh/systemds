@@ -133,7 +133,7 @@ public class TemplateUtil {
 		}
 	}
 
-	public static ArrayList<Pair<Long, Integer>> getTokenIndexOnMultiLineRecords(InputSplit split,
+	public static Pair<ArrayList<Pair<Long, Integer>>, Long> getTokenIndexOnMultiLineRecords(InputSplit split,
 		TextInputFormat inputFormat, JobConf job, String token) throws IOException {
 		RecordReader<LongWritable, Text> reader = inputFormat.getRecordReader(split, job, Reporter.NULL);
 		LongWritable key = new LongWritable();
@@ -157,7 +157,7 @@ public class TemplateUtil {
 			while(true);
 			ri++;
 		}
-		return result;
+		return new Pair<>(result, ri);
 	}
 
 	public static int getEndPos(String str, int strLen, int currPos, HashSet<String> endWithValueString) {

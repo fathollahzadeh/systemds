@@ -128,13 +128,14 @@ public abstract class MatrixGenerateReader extends MatrixReader {
 					TemplateUtil.SplitInfo splitInfo = new TemplateUtil.SplitInfo();
 					ArrayList<Pair<Long, Integer>> beginIndexes =
 						TemplateUtil.getTokenIndexOnMultiLineRecords(inputSplit, informat, job,
-						_props.getRowIndexStructure().getSeqBeginString());
+						_props.getRowIndexStructure().getSeqBeginString()).getKey();
 
 					ArrayList<Pair<Long, Integer>> endIndexes;
 					int tokenLength = 0;
 					boolean diffBeginEndToken = false;
 					if(!_props.getRowIndexStructure().getSeqBeginString().equals(_props.getRowIndexStructure().getSeqEndString())) {
-						endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(inputSplit, informat, job, _props.getRowIndexStructure().getSeqEndString());
+						endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(inputSplit, informat, job,
+							_props.getRowIndexStructure().getSeqEndString()).getKey();
 						tokenLength = _props.getRowIndexStructure().getSeqEndString().length();
 						diffBeginEndToken = true;
 					}

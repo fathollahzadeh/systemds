@@ -116,16 +116,21 @@ public abstract class FrameGenerateReader extends FrameReader {
 				int splitIndex = 0;
 				for(InputSplit inputSplit : splits) {
 					int nrows = 0;
+					long lastLineIndex;
 					TemplateUtil.SplitInfo splitInfo = _offsets.getSeqOffsetPerSplit(splitIndex);
-					ArrayList<Pair<Long, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(
+					Pair<ArrayList<Pair<Long, Integer>>, Long> tokenPair =  TemplateUtil.getTokenIndexOnMultiLineRecords(
 						inputSplit, informat, job, _props.getRowIndexStructure().getSeqBeginString());
+
+					ArrayList<Pair<Long, Integer>> beginIndexes = tokenPair.getKey();
+					lastLineIndex = tokenPair.getValue();
 
 					ArrayList<Pair<Long, Integer>> endIndexes;
 					int tokenLength = 0;
 					if(!_props.getRowIndexStructure().getSeqBeginString().equals(_props.getRowIndexStructure().getSeqEndString())) {
 						endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(inputSplit, informat, job,
-							_props.getRowIndexStructure().getSeqEndString());
+							_props.getRowIndexStructure().getSeqEndString()).getKey();
 						tokenLength = _props.getRowIndexStructure().getSeqEndString().length();
+						lastLineIndex = -1;
 					}
 					else {
 						endIndexes = new ArrayList<>();
@@ -176,6 +181,11 @@ public abstract class FrameGenerateReader extends FrameReader {
 							}
 							_offsets.getSeqOffsetPerSplit(splitIndex + 1).setRemainString(sb.toString());
 						}
+					}
+					else if(lastLineIndex !=-1) {
+						splitInfo.addIndexAndPosition(endIndexes.get(endIndexes.size()-1).getKey(), lastLineIndex,
+							endIndexes.get(endIndexes.size()-1).getValue(), 0);
+						nrows++;
 					}
 					splitInfo.setNrows(nrows);
 					_offsets.setOffsetPerSplit(splitIndex, row);
