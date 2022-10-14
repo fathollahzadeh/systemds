@@ -161,6 +161,7 @@ public abstract class MatrixGenerateReaderParallel extends MatrixReader {
 			throw new IOException("Thread pool Error " + e.getMessage(), e);
 		}
 
+		System.out.println("Row=");
 		// robustness for wrong dimensions which are already compiled into the plan
 		if(rlen != -1 && _rLen != rlen) {
 			String msg = "Read matrix dimensions differ from meta data: [" + _rLen + "x" + _cLen + "] vs. [" + rlen+ "x" + clen + "].";
@@ -176,7 +177,7 @@ public abstract class MatrixGenerateReaderParallel extends MatrixReader {
 			}
 		}
 		long estnnz2 = (estnnz < 0) ? (long) _rLen * _cLen : estnnz;
-		return createOutputMatrixBlock(_rLen, _cLen, blen, estnnz2, !_props.isSparse(), _props.isSparse());
+		return createOutputMatrixBlock(_rLen, _cLen, blen, estnnz2, true, false);
 	}
 
 	@Override
