@@ -46,32 +46,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
-public class FrameReaderTextHl7 extends FrameReader {
-	protected final FileFormatPropertiesHL7 _props;
-	private boolean isReadAllValues;
-	private boolean isRangeBaseRead;
-	private boolean isQueryFilter;
+public class FrameReaderTextHL7 extends FrameReader {
+	protected static FileFormatPropertiesHL7 _props;
 
-	public FrameReaderTextHl7(FileFormatPropertiesHL7 props) {
+	public FrameReaderTextHL7(FileFormatPropertiesHL7 props) {
 		//if unspecified use default properties for robustness
 		_props = props;
-
-		if(_props.getMaxColumnIndex() == -1)
-			isReadAllValues = true;
-		else {
-			isReadAllValues = false;
-			if(_props.getSelectedIndexes().length > 0) {
-				isQueryFilter = true;
-				isRangeBaseRead = false;
-				_props.setMaxColumnIndex(_props.getSelectedIndexes()[0]);
-				for(int i=1; i< _props.getSelectedIndexes().length; i++)
-					_props.setMaxColumnIndex(Math.max(_props.getMaxColumnIndex(), _props.getSelectedIndexes()[i]));
-			}
-			else {
-				isRangeBaseRead = true;
-				isQueryFilter = false;
-			}
-		}
 	}
 
 	@Override
@@ -190,12 +170,12 @@ public class FrameReaderTextHl7 extends FrameReader {
 							Message message = pipeParser.parse(messageString.toString());
 							ArrayList<String> values = new ArrayList<>();
 							groupEncode(message, values);
-							if(isReadAllValues) {
+							if(_props.isReadAllValues()) {
 								col = 0;
 								for(String s : values)
 									dest.set(row, col++, UtilFunctions.stringToObject(ValueType.STRING, s));
 							}
-							else if(isRangeBaseRead){
+							else if(_props.isRangeBaseRead()){
 								for(int i = 0; i<_props.getMaxColumnIndex();i++)
 									dest.set(row, i, UtilFunctions.stringToObject(ValueType.STRING, values.get(i)));
 							}
@@ -221,7 +201,7 @@ public class FrameReaderTextHl7 extends FrameReader {
 		return row;
 	}
 
-	protected void groupEncode(Group groupObject, ArrayList<String> values) {
+	protected static void groupEncode(Group groupObject, ArrayList<String> values) {
 		String[] childNames = groupObject.getNames();
 		try {
 			String[] var5 = childNames;
@@ -249,7 +229,7 @@ public class FrameReaderTextHl7 extends FrameReader {
 		}
 	}
 
-	protected void segmentEncode(Segment segmentObject, ArrayList<String> values) throws HL7Exception {
+	protected static void segmentEncode(Segment segmentObject, ArrayList<String> values) throws HL7Exception {
 		int n = segmentObject.numFields();
 		for(int i = 1; i <= n; ++i) {
 			Type[] reps = segmentObject.getField(i);
@@ -262,10 +242,10 @@ public class FrameReaderTextHl7 extends FrameReader {
 		}
 	}
 
-	protected void encode(Type datatypeObject, ArrayList<String> values) throws DataTypeException {
-		if(isRangeBaseRead && values.size()>_props.getMaxColumnIndex())
+	protected static void encode(Type datatypeObject, ArrayList<String> values) throws DataTypeException {
+		if(_props.isRangeBaseRead() && values.size()>_props.getMaxColumnIndex())
 			return;
-		else if(isQueryFilter && values.size() > _props.getMaxColumnIndex())
+		else if(_props.isQueryFilter() && values.size() > _props.getMaxColumnIndex())
 			return;
 		else {
 			if(datatypeObject instanceof Varies) {
@@ -280,13 +260,13 @@ public class FrameReaderTextHl7 extends FrameReader {
 		}
 	}
 
-	protected void encodeVaries(Varies datatypeObject, ArrayList<String> values) throws DataTypeException {
+	protected static void encodeVaries(Varies datatypeObject, ArrayList<String> values) throws DataTypeException {
 		if(datatypeObject.getData() != null) {
 			encode(datatypeObject.getData(), values);
 		}
 	}
 
-	protected void encodePrimitive(Primitive datatypeObject, ArrayList<String> values) throws DataTypeException {
+	protected static void encodePrimitive(Primitive datatypeObject, ArrayList<String> values) throws DataTypeException {
 		String value = datatypeObject.getValue();
 		boolean hasValue = value != null && value.length() > 0;
 		if(hasValue) {
@@ -324,7 +304,7 @@ public class FrameReaderTextHl7 extends FrameReader {
 		}
 	}
 
-	protected void encodeComposite(Composite datatypeObject, ArrayList<String> values) throws DataTypeException {
+	protected static void encodeComposite(Composite datatypeObject, ArrayList<String> values) throws DataTypeException {
 		Type[] components = datatypeObject.getComponents();
 		for(int i = 0; i < components.length; ++i) {
 			encode(components[i], values);

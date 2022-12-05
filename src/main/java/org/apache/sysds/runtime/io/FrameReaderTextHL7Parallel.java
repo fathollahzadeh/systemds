@@ -19,8 +19,8 @@
 
 package org.apache.sysds.runtime.io;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import ca.uhn.hl7v2.model.Message;
+import ca.uhn.hl7v2.parser.PipeParser;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -32,6 +32,7 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.sysds.common.Types;
+import org.apache.sysds.common.Types.ValueType;
 import org.apache.sysds.conf.ConfigurationManager;
 import org.apache.sysds.hops.OptimizerUtils;
 import org.apache.sysds.runtime.DMLRuntimeException;
@@ -39,34 +40,33 @@ import org.apache.sysds.runtime.iogen.template.TemplateUtil;
 import org.apache.sysds.runtime.matrix.data.FrameBlock;
 import org.apache.sysds.runtime.matrix.data.Pair;
 import org.apache.sysds.runtime.util.CommonThreadPool;
+import org.apache.sysds.runtime.util.UtilFunctions;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import static org.apache.sysds.runtime.io.FrameReader.checkValidInputFile;
-import static org.apache.sysds.runtime.io.FrameReader.createOutputFrameBlock;
-
-public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
-
-	protected static final Log LOG = LogFactory.getLog(FrameReaderXMLJacksonParallel.class.getName());
+/**
+ * Multi-threaded frame text HL7 reader.
+ */
+public class FrameReaderTextHL7Parallel extends FrameReaderTextHL7 {
 	protected int _numThreads;
 	protected JobConf job;
 	protected TemplateUtil.SplitOffsetInfos _offsets;
 	protected int _rLen;
 	protected int _cLen;
 
-	public FrameReaderXMLJacksonParallel() {
+	public FrameReaderTextHL7Parallel(FileFormatPropertiesHL7 props) {
+		super(props);
 		this._numThreads = OptimizerUtils.getParallelTextReadParallelism();
 	}
 
-	@Override public FrameBlock readFrameFromHDFS(String fname, Types.ValueType[] schema,
-		Map<String, Integer> schemaMap, String beginToken, String endToken, long rlen, long clen)
+	@Override
+	public FrameBlock readFrameFromHDFS(String fname, ValueType[] schema, String[] names, long rlen, long clen)
 		throws IOException, DMLRuntimeException {
-		//prepare file access
+
 		job = new JobConf(ConfigurationManager.getCachedJobConf());
 		Path path = new Path(fname);
 		FileSystem fs = IOUtilFunctions.getFileSystem(path, job);
@@ -81,17 +81,15 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 		// check existence and non-empty file
 		checkValidInputFile(fs, path);
 
-		String[] names = createOutputNamesFromSchemaMap(schemaMap);
-		// allocate output frame block
-		FrameBlock ret = computeSizeAndCreateOutputFrameBlock(informat, job, schema, names, splits, beginToken, endToken);
+		FrameBlock ret = computeSizeAndCreateOutputFrameBlock(informat, job, schema, names, splits, "MSH|");
 
-		// core read (sequential/parallel)
-		readXMLFrameFromHDFS(splits, informat, job, schema, schemaMap, ret);
+		readHL7FrameFromHDFS(splits, informat, job, schema, ret);
+
 		return ret;
 	}
 
-	protected void readXMLFrameFromHDFS(InputSplit[] splits, TextInputFormat informat, JobConf jobConf,
-		Types.ValueType[] schema, Map<String, Integer> schemaMap, FrameBlock dest) throws IOException {
+	protected void readHL7FrameFromHDFS(InputSplit[] splits, TextInputFormat informat, JobConf jobConf,
+		Types.ValueType[] schema, FrameBlock dest) throws IOException {
 
 		ExecutorService pool = CommonThreadPool.get(_numThreads);
 		try {
@@ -99,7 +97,7 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 			ArrayList<ReadTask> tasks = new ArrayList<>();
 			int splitCount = 0;
 			for(InputSplit split : splits) {
-				tasks.add(new ReadTask(split, informat, dest, splitCount++, schema, schemaMap));
+				tasks.add(new ReadTask(split, informat, dest, splitCount++, schema));
 			}
 			pool.invokeAll(tasks);
 			pool.shutdown();
@@ -110,8 +108,8 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 		}
 	}
 
-	@Override protected FrameBlock computeSizeAndCreateOutputFrameBlock(TextInputFormat informat, JobConf job,
-		Types.ValueType[] schema, String[] names, InputSplit[] splits, String beginToken, String endToken)
+	protected FrameBlock computeSizeAndCreateOutputFrameBlock(TextInputFormat informat, JobConf job,
+		Types.ValueType[] schema, String[] names, InputSplit[] splits, String beginToken)
 		throws IOException, DMLRuntimeException {
 		_rLen = 0;
 		_cLen = names.length;
@@ -131,7 +129,7 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 			int splitIndex = 0;
 			for(InputSplit split : splits) {
 				Integer nextOffset = splitIndex + 1 == splits.length ? null : splitIndex + 1;
-				tasks.add(new CountRowsTask(_offsets, splitIndex, nextOffset, split, informat, job, beginToken, endToken));
+				tasks.add(new CountRowsTask(_offsets, splitIndex, nextOffset, split, informat, job, beginToken));
 				splitIndex++;
 			}
 
@@ -161,10 +159,9 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 		private final TextInputFormat _inputFormat;
 		private final JobConf _job;
 		private final String _beginToken;
-		private final String _endToken;
 
 		public CountRowsTask(TemplateUtil.SplitOffsetInfos offsets, Integer curOffset, Integer nextOffset,
-			InputSplit split, TextInputFormat inputFormat, JobConf job, String beginToken, String endToken) {
+			InputSplit split, TextInputFormat inputFormat, JobConf job, String beginToken) {
 			_offsets = offsets;
 			_curOffset = curOffset;
 			_nextOffset = nextOffset;
@@ -172,26 +169,24 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 			_split = split;
 			_job = job;
 			_beginToken = beginToken;
-			_endToken = endToken;
 		}
 
-		@Override public Integer call() throws Exception {
+		@Override
+		public Integer call() throws Exception {
 			int nrows = 0;
 
 			ArrayList<Pair<Long, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split,
 				_inputFormat, _job, _beginToken).getKey();
-			ArrayList<Pair<Long, Integer>> endIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(_split,
-				_inputFormat, _job, _endToken).getKey();
-			int tokenLength = _endToken.length();
+			ArrayList<Pair<Long, Integer>> endIndexes = new ArrayList<>();
+			for(int i = 1; i < beginIndexes.size(); i++)
+				endIndexes.add(beginIndexes.get(i));
+			int tokenLength = _beginToken.length();
 
 			int i = 0;
 			int j = 0;
 
-			if(beginIndexes.get(0).getKey() > endIndexes.get(0).getKey()) {
+			if(beginIndexes.get(0).getKey() > 0)
 				nrows++;
-				for(; j < endIndexes.size() && beginIndexes.get(0).getKey() > endIndexes.get(j).getKey(); j++)
-					;
-			}
 
 			while(i < beginIndexes.size() && j < endIndexes.size()) {
 				Pair<Long, Integer> p1 = beginIndexes.get(i);
@@ -208,7 +203,7 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 				j += n - 1;
 				_offsets.getSeqOffsetPerSplit(_curOffset)
 					.addIndexAndPosition(beginIndexes.get(i - n).getKey(), endIndexes.get(j).getKey(),
-						beginIndexes.get(i - n).getValue(), endIndexes.get(j).getValue() + tokenLength);
+						beginIndexes.get(i - n).getValue(), endIndexes.get(j).getValue());
 				j++;
 				nrows++;
 			}
@@ -231,6 +226,11 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 					_offsets.getSeqOffsetPerSplit(_nextOffset).setRemainString(sb.toString());
 				}
 			}
+			else {
+				nrows++;
+				_offsets.getSeqOffsetPerSplit(_curOffset)
+					.addIndexAndPosition(endIndexes.get(endIndexes.size() -1).getKey(),	_split.getLength()-1,0, 0);
+			}
 			_offsets.getSeqOffsetPerSplit(_curOffset).setNrows(nrows);
 			_offsets.setOffsetPerSplit(_curOffset, nrows);
 
@@ -245,26 +245,123 @@ public class FrameReaderXMLJacksonParallel extends FrameReaderXMLJackson {
 		private final FrameBlock _dest;
 		private final int _splitCount;
 		private final Types.ValueType[] _schema;
-		private final Map<String, Integer> _schemaMap;
 
 		public ReadTask(InputSplit split, TextInputFormat informat, FrameBlock dest, int splitCount,
-			Types.ValueType[] schema, Map<String, Integer> schemaMap) {
+			Types.ValueType[] schema) {
 			_split = split;
 			_informat = informat;
 			_dest = dest;
 			_splitCount = splitCount;
 			_schema = schema;
-			_schemaMap = schemaMap;
 		}
 
-		@Override public Long call() throws IOException {
+		@Override
+		public Long call() throws IOException {
 			RecordReader<LongWritable, Text> reader = _informat.getRecordReader(_split, job, Reporter.NULL);
 			LongWritable key = new LongWritable();
 			Text value = new Text();
 			int row = _offsets.getOffsetPerSplit(_splitCount);
 			TemplateUtil.SplitInfo _splitInfo = _offsets.getSeqOffsetPerSplit(_splitCount);
-			readXMLFrameFromInputSplit(reader, _splitInfo, key, value, row, _schema, _schemaMap, _dest);
+			readHL7FrameFromInputSplit(reader, _splitInfo, key, value, row, _schema, _dest);
 			return 0L;
 		}
+	}
+
+	private static void addRow(String messageString, PipeParser pipeParser, FrameBlock dest, Types.ValueType[] schema,
+		int row) throws IOException {
+		if(messageString.length() > 0) {
+			try {
+				// parse HL7 message
+				Message message = pipeParser.parse(messageString.toString());
+				ArrayList<String> values = new ArrayList<>();
+				groupEncode(message, values);
+				if(_props.isReadAllValues()) {
+					int col = 0;
+					for(String s : values)
+						dest.set(row, col++, UtilFunctions.stringToObject(schema[col], s));
+				}
+				else if(_props.isRangeBaseRead()) {
+					for(int i = 0; i < _props.getMaxColumnIndex(); i++)
+						dest.set(row, i, UtilFunctions.stringToObject(schema[i], values.get(i)));
+				}
+				else {
+					for(int i = 0; i < _props.getSelectedIndexes().length; i++) {
+						dest.set(row, i,
+							UtilFunctions.stringToObject(schema[_props.getSelectedIndexes()[i]], values.get(_props.getSelectedIndexes()[i])));
+					}
+				}
+			}
+			catch(Exception exception) {
+				throw new IOException("Can't part hel7 message:", exception);
+			}
+		}
+	}
+
+	protected static int readHL7FrameFromInputSplit(RecordReader<LongWritable, Text> reader,
+		TemplateUtil.SplitInfo splitInfo, LongWritable key, Text value, int rpos, Types.ValueType[] schema,
+		FrameBlock dest) throws IOException {
+		int rlen = splitInfo.getNrows();
+		int ri;
+		int row = 0;
+		int beginPosStr, endPosStr;
+		String remainStr = "";
+		String str = "";
+		StringBuilder sb = new StringBuilder(splitInfo.getRemainString());
+		long beginIndex = splitInfo.getRecordIndexBegin(0);
+		long endIndex = splitInfo.getRecordIndexEnd(0);
+		boolean flag;
+
+		PipeParser pipeParser = new PipeParser();
+		if(sb.length() > 0) {
+			ri = 0;
+			while(ri < beginIndex) {
+				reader.next(key, value);
+				sb.append(value.toString());
+				ri++;
+			}
+			reader.next(key, value);
+			String valStr = value.toString();
+			sb.append(valStr.substring(0, splitInfo.getRecordPositionBegin(0)));
+
+			addRow(sb.toString(), pipeParser, dest, schema, row + rpos);
+			row++;
+			sb = new StringBuilder(valStr.substring(splitInfo.getRecordPositionBegin(0)));
+		}
+		else {
+			ri = -1;
+		}
+
+		int rowCounter = 0;
+		while(row < rlen) {
+			flag = reader.next(key, value);
+			if(flag) {
+				ri++;
+				String valStr = value.toString();
+				if(ri >= beginIndex && ri <= endIndex) {
+					beginPosStr = ri == beginIndex ? splitInfo.getRecordPositionBegin(rowCounter) : 0;
+					endPosStr = ri == endIndex ? splitInfo.getRecordPositionEnd(rowCounter) : valStr.length();
+					sb.append(valStr.substring(beginPosStr, endPosStr));
+					remainStr = valStr.substring(endPosStr);
+					continue;
+				}
+				else {
+					str = sb.toString();
+					sb = new StringBuilder();
+					sb.append(remainStr).append(valStr);
+					if(rowCounter + 1 < splitInfo.getListSize()) {
+						beginIndex = splitInfo.getRecordIndexBegin(rowCounter + 1);
+						endIndex = splitInfo.getRecordIndexEnd(rowCounter + 1);
+					}
+					rowCounter++;
+				}
+			}
+			else {
+				str = sb.toString();
+				sb = new StringBuilder();
+			}
+			addRow(str, pipeParser, dest, schema, row);
+			row++;
+		}
+		return row + rpos;
 	}
 }
