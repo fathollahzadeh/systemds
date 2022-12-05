@@ -80,8 +80,8 @@ public class FrameReaderTextHL7Parallel extends FrameReaderTextHL7 {
 
 		// check existence and non-empty file
 		checkValidInputFile(fs, path);
-
-		FrameBlock ret = computeSizeAndCreateOutputFrameBlock(informat, job, schema, names, splits, "MSH|");
+		String[] lnames = createOutputNames(names, clen);
+		FrameBlock ret = computeSizeAndCreateOutputFrameBlock(informat, job, schema, lnames, splits, "MSH|");
 
 		readHL7FrameFromHDFS(splits, informat, job, schema, ret);
 

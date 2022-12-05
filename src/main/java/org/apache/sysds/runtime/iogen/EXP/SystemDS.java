@@ -178,6 +178,19 @@ public class SystemDS {
 						FrameReaderXMLJackson jacksonXML = new FrameReaderXMLJackson();
 						frameBlock = jacksonXML.readFrameFromHDFS(dataFileName, schema, xmlSchemaMap, beginToken,
 							endToken, -1, cols);
+
+					case "hl7":
+						schema = util.getSchema(schemaFileName);
+						cols = schema.length;
+						int maxColumnIndex = Integer.parseInt(System.getProperty("maxColumnIndex"));
+						String selectedIndexesStr = System.getProperty("maxColumnIndex");
+						String[] selectedIndexesList = selectedIndexesStr.split(",");
+						int[] selectedIndexes = new int[selectedIndexesList.length];
+						for(int i=0; i<selectedIndexesList.length; i++)
+							selectedIndexes[i] = Integer.parseInt(selectedIndexesList[i]);
+						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(selectedIndexes, maxColumnIndex);
+						FrameReaderTextHL7 hl7 = new FrameReaderTextHL7(properties);
+						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, cols);
 				}
 			}
 			else {
@@ -235,6 +248,19 @@ public class SystemDS {
 						FrameReaderXMLJacksonParallel jacksonXML = new FrameReaderXMLJacksonParallel();
 						frameBlock = jacksonXML.readFrameFromHDFS(dataFileName, schema, xmlSchemaMap, beginToken,
 							endToken, -1, cols);
+
+					case "hl7":
+						schema = util.getSchema(schemaFileName);
+						cols = schema.length;
+						int maxColumnIndex = Integer.parseInt(System.getProperty("maxColumnIndex"));
+						String selectedIndexesStr = System.getProperty("maxColumnIndex");
+						String[] selectedIndexesList = selectedIndexesStr.split(",");
+						int[] selectedIndexes = new int[selectedIndexesList.length];
+						for(int i=0; i<selectedIndexesList.length; i++)
+							selectedIndexes[i] = Integer.parseInt(selectedIndexesList[i]);
+						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(selectedIndexes, maxColumnIndex);
+						FrameReaderTextHL7Parallel hl7 = new FrameReaderTextHL7Parallel(properties);
+						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, cols);
 
 				}
 			}

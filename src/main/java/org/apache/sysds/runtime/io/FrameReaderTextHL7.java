@@ -73,7 +73,8 @@ public class FrameReaderTextHL7 extends FrameReader {
 		splits = IOUtilFunctions.sortInputSplits(splits);
 
 		rlen = computeHL7NRows(informat, job, splits);
-		FrameBlock ret = createOutputFrameBlock(schema, names, rlen);
+		String[] lnames = createOutputNames(names, clen);
+		FrameBlock ret = createOutputFrameBlock(schema, lnames, rlen);
 
 		// core read (sequential/parallel)
 		readHL7FrameFromHDFS(informat, job, splits, ret, schema);
