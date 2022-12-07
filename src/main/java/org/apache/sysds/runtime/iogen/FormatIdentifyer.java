@@ -20,7 +20,7 @@
 package org.apache.sysds.runtime.iogen;
 
 import org.apache.sysds.lops.Lop;
-import org.apache.sysds.runtime.matrix.data.FrameBlock;
+import org.apache.sysds.runtime.frame.data.FrameBlock;
 import org.apache.sysds.runtime.matrix.data.MatrixBlock;
 import org.apache.sysds.runtime.matrix.data.Pair;
 

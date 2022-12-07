@@ -24,7 +24,7 @@ import org.apache.sysds.common.Types;
 import org.apache.sysds.conf.CompilerConfig;
 import org.apache.sysds.runtime.io.FrameReader;
 import org.apache.sysds.runtime.iogen.GenerateReader;
-import org.apache.sysds.runtime.matrix.data.FrameBlock;
+import org.apache.sysds.runtime.frame.data.FrameBlock;
 import org.apache.sysds.runtime.util.DataConverter;
 import org.apache.sysds.runtime.util.UtilFunctions;
 import org.apache.sysds.test.AutomatedTestBase;

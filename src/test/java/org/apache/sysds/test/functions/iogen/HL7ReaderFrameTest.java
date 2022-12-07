@@ -23,8 +23,10 @@ import org.apache.sysds.api.DMLScript;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.conf.CompilerConfig;
 import org.apache.sysds.runtime.io.FileFormatPropertiesHL7;
+import org.apache.sysds.runtime.io.FrameReaderTextHL7;
+import org.apache.sysds.runtime.io.FrameReaderTextHL7Parallel;
 import org.apache.sysds.runtime.io.FrameReaderTextHl7;
-import org.apache.sysds.runtime.matrix.data.FrameBlock;
+import org.apache.sysds.runtime.frame.data.FrameBlock;
 import org.apache.sysds.test.AutomatedTestBase;
 import org.apache.sysds.test.TestConfiguration;
 import org.apache.sysds.test.TestUtils;
@@ -35,50 +37,65 @@ import java.io.IOException;
 
 public abstract class HL7ReaderFrameTest extends AutomatedTestBase {
 
-protected final static String TEST_DIR = "functions/iogen/";
-protected final static String TEST_CLASS_DIR = TEST_DIR + HL7ReaderFrameTest.class.getSimpleName() + "/";
+	protected final static String TEST_DIR = "functions/iogen/";
+	protected final static String TEST_CLASS_DIR = TEST_DIR + HL7ReaderFrameTest.class.getSimpleName() + "/";
 
-protected abstract String getTestName();
+	protected abstract String getTestName();
 
-@Override
-public void setUp() {
-	TestUtils.clearAssertionInformation();
-	addTestConfiguration(getTestName(), new TestConfiguration(TEST_DIR, getTestName(), new String[] {"Y"}));
-}
-
-@SuppressWarnings("unused")
-protected void runGenerateReaderTest(boolean parallel, Types.ValueType[] schema, String[] names, FileFormatPropertiesHL7 properties) {
-
-	Types.ExecMode oldPlatform = rtplatform;
-	rtplatform = Types.ExecMode.SINGLE_NODE;
-
-	boolean sparkConfigOld = DMLScript.USE_LOCAL_SPARK_CONFIG;
-	boolean oldpar = CompilerConfig.FLAG_PARREADWRITE_TEXT;
-
-	try {
-		CompilerConfig.FLAG_PARREADWRITE_TEXT = false;
-
-		TestConfiguration config = getTestConfiguration(getTestName());
-		loadTestConfiguration(config);
-
-		FrameReaderTextHl7 hl7 = new FrameReaderTextHl7(properties);
-		FrameBlock fb = hl7.readFrameFromHDFS("/home/saeed/Documents/tmp/HL7-Message-Sample-Anonymised.dat", schema,
-			names, -1, names.length);
-
+	@Override
+	public void setUp() {
+		TestUtils.clearAssertionInformation();
+		addTestConfiguration(getTestName(), new TestConfiguration(TEST_DIR, getTestName(), new String[] {"Y"}));
 	}
-	catch(Exception exception) {
-		exception.printStackTrace();
+
+	@SuppressWarnings("unused")
+	protected void runGenerateReaderTest(boolean parallel, Types.ValueType[] schema, String[] names, FileFormatPropertiesHL7 properties) {
+
+		Types.ExecMode oldPlatform = rtplatform;
+		rtplatform = Types.ExecMode.SINGLE_NODE;
+
+		boolean sparkConfigOld = DMLScript.USE_LOCAL_SPARK_CONFIG;
+		boolean oldpar = CompilerConfig.FLAG_PARREADWRITE_TEXT;
+
+		try {
+			CompilerConfig.FLAG_PARREADWRITE_TEXT = false;
+
+			TestConfiguration config = getTestConfiguration(getTestName());
+			loadTestConfiguration(config);
+
+
+			FrameBlock fb;
+			if(!parallel) {
+				FrameReaderTextHL7 hl7 = new FrameReaderTextHL7(properties);
+				fb = hl7.readFrameFromHDFS("/home/saeed/Documents/tmp/message-hl7.dat", schema,
+					names, -1, names.length);
+			}
+			else {
+				FrameReaderTextHL7Parallel hl7Parallel = new FrameReaderTextHL7Parallel(properties);
+				fb = hl7Parallel.readFrameFromHDFS("/home/saeed/Documents/tmp/message-hl7.dat", schema,
+					names, -1, names.length);
+			}
+
+			int a = 100;
+			FrameReaderTextHl7 hl7 = new FrameReaderTextHl7(properties);
+			FrameBlock fb = hl7.readFrameFromHDFS("/home/saeed/Documents/tmp/HL7-Message-Sample-Anonymised.dat", schema,
+				names, -1, names.length);
+
+		}
+		catch(Exception exception) {
+			exception.printStackTrace();
+		}
+		finally {
+			rtplatform = oldPlatform;
+			CompilerConfig.FLAG_PARREADWRITE_TEXT = oldpar;
+			DMLScript.USE_LOCAL_SPARK_CONFIG = sparkConfigOld;
+		}
 	}
-	finally {
-		rtplatform = oldPlatform;
-		CompilerConfig.FLAG_PARREADWRITE_TEXT = oldpar;
-		DMLScript.USE_LOCAL_SPARK_CONFIG = sparkConfigOld;
+
+	private static void writeRawString(String raw, String fileName) throws IOException {
+		BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
+		writer.write(raw);
+		writer.close();
 	}
 }
 
-private static void writeRawString(String raw, String fileName) throws IOException {
-	BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
-	writer.write(raw);
-	writer.close();
-}
-}

@@ -19,7 +19,7 @@ import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.conf.ConfigurationManager;
 import org.apache.sysds.runtime.DMLRuntimeException;
-import org.apache.sysds.runtime.matrix.data.FrameBlock;
+import org.apache.sysds.runtime.frame.data.FrameBlock;
 import org.apache.sysds.runtime.util.UtilFunctions;
 
 import java.io.IOException;

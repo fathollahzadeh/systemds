@@ -37,7 +37,7 @@ import org.apache.sysds.runtime.io.FrameReader;
 import org.apache.sysds.runtime.io.IOUtilFunctions;
 import org.apache.sysds.runtime.iogen.CustomProperties;
 import org.apache.sysds.runtime.iogen.RowIndexStructure;
-import org.apache.sysds.runtime.matrix.data.FrameBlock;
+import org.apache.sysds.runtime.frame.data.FrameBlock;
 import org.apache.sysds.runtime.matrix.data.Pair;
 import org.apache.sysds.runtime.util.CommonThreadPool;
 import org.apache.sysds.runtime.util.InputStreamInputFormat;

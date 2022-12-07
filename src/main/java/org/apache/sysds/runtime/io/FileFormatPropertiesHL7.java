@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,9 +31,30 @@ public class FileFormatPropertiesHL7 extends FileFormatProperties implements Ser
 	private int[] selectedIndexes;
 	private int maxColumnIndex;
 
+	private boolean readAllValues;
+	private boolean rangeBaseRead;
+	private boolean queryFilter;
+
 	public FileFormatPropertiesHL7(int[] selectedIndexes, int maxColumnIndex) {
 		this.selectedIndexes = selectedIndexes;
 		this.maxColumnIndex = maxColumnIndex;
+
+		if(this.maxColumnIndex == -1)
+			this.readAllValues = true;
+		else {
+			this.readAllValues = false;
+			if(this.selectedIndexes.length > 0) {
+				this.queryFilter = true;
+				this.rangeBaseRead = false;
+				this.maxColumnIndex = this.selectedIndexes[0];
+				for(int i=1; i< this.selectedIndexes.length; i++)
+					this.maxColumnIndex = Math.max(this.maxColumnIndex, this.selectedIndexes[i]);
+			}
+			else {
+				this.rangeBaseRead = true;
+				this.queryFilter = false;
+			}
+		}
 	}
 
 	public FileFormatPropertiesHL7() {
@@ -62,4 +83,29 @@ public class FileFormatPropertiesHL7 extends FileFormatProperties implements Ser
 	public void setMaxColumnIndex(int maxColumnIndex) {
 		this.maxColumnIndex = maxColumnIndex;
 	}
+
+	public boolean isReadAllValues() {
+		return readAllValues;
+	}
+
+	public void setReadAllValues(boolean readAllValues) {
+		this.readAllValues = readAllValues;
+	}
+
+	public boolean isRangeBaseRead() {
+		return rangeBaseRead;
+	}
+
+	public void setRangeBaseRead(boolean rangeBaseRead) {
+		this.rangeBaseRead = rangeBaseRead;
+	}
+
+	public boolean isQueryFilter() {
+		return queryFilter;
+	}
+
+	public void setQueryFilter(boolean queryFilter) {
+		this.queryFilter = queryFilter;
+	}
 }
+

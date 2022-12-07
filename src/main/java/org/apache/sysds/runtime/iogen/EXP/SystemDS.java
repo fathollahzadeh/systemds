@@ -1,10 +1,13 @@
 package org.apache.sysds.runtime.iogen.EXP;
 
+import com.google.gson.Gson;
 import org.apache.sysds.common.Types;
+import org.apache.sysds.runtime.frame.data.FrameBlock;
 import org.apache.sysds.runtime.io.*;
-import org.apache.sysds.runtime.matrix.data.FrameBlock;
+import org.apache.sysds.runtime.matrix.data.Pair;
 import org.apache.wink.json4j.JSONException;
 import org.apache.wink.json4j.JSONObject;
+import scala.Int;
 
 import java.io.IOException;
 import java.util.Map;
@@ -75,9 +78,10 @@ public class SystemDS {
 				endToken = jsonObject.getString("end_token");
 
 		}
-		catch(Exception exception) {
+		catch(Exception exception) {}
 
-		}
+		Gson gson = new Gson();
+		System.out.println(gson.toJson(dataType));
 
 		if(dataType.equalsIgnoreCase("matrix")) {
 			MatrixReader matrixReader = null;
@@ -182,13 +186,8 @@ public class SystemDS {
 					case "hl7":
 						schema = util.getSchema(schemaFileName);
 						cols = schema.length;
-						int maxColumnIndex = Integer.parseInt(System.getProperty("maxColumnIndex"));
-						String selectedIndexesStr = System.getProperty("maxColumnIndex");
-						String[] selectedIndexesList = selectedIndexesStr.split(",");
-						int[] selectedIndexes = new int[selectedIndexesList.length];
-						for(int i=0; i<selectedIndexesList.length; i++)
-							selectedIndexes[i] = Integer.parseInt(selectedIndexesList[i]);
-						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(selectedIndexes, maxColumnIndex);
+						Pair<int[], Integer> pair = getHL7Properties(System.getProperty("schemaMapFileName"));
+						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(pair.getKey(), pair.getValue());
 						FrameReaderTextHL7 hl7 = new FrameReaderTextHL7(properties);
 						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, cols);
 				}
@@ -252,13 +251,8 @@ public class SystemDS {
 					case "hl7":
 						schema = util.getSchema(schemaFileName);
 						cols = schema.length;
-						int maxColumnIndex = Integer.parseInt(System.getProperty("maxColumnIndex"));
-						String selectedIndexesStr = System.getProperty("maxColumnIndex");
-						String[] selectedIndexesList = selectedIndexesStr.split(",");
-						int[] selectedIndexes = new int[selectedIndexesList.length];
-						for(int i=0; i<selectedIndexesList.length; i++)
-							selectedIndexes[i] = Integer.parseInt(selectedIndexesList[i]);
-						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(selectedIndexes, maxColumnIndex);
+						Pair<int[], Integer> parallelPair = getHL7Properties(System.getProperty("schemaMapFileName"));
+						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(parallelPair.getKey(), parallelPair.getValue());
 						FrameReaderTextHL7Parallel hl7 = new FrameReaderTextHL7Parallel(properties);
 						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, cols);
 
@@ -266,6 +260,69 @@ public class SystemDS {
 			}
 
 		}
+
+	}
+
+	private static Pair<int[], Integer> getHL7Properties(String fileName){
+		int[] selectedIndexes;
+		Integer maxColumnIndex = -1;
+		if(fileName.contains("Q1") || fileName.contains("Q2")){
+			if (fileName.contains("Q1"))
+				selectedIndexes = new int[] {14, 15, 16, 17};
+			else
+				selectedIndexes = new int[] {19,20,21,22,23};
+			maxColumnIndex = 0;
+		}
+		else if(fileName.contains("F1") || fileName.contains("F2") || fileName.contains("F3") ||
+			fileName.contains("F4") ||fileName.contains("F5") || fileName.contains("F6") || fileName.contains("F7") ||
+			fileName.contains("F8") || fileName.contains("F9") || fileName.contains("F10")) {
+
+			int count = 0;
+			if(fileName.contains("F1")){
+				count = 10;
+
+			} else if(fileName.contains("F2")){
+				count = 20;
+
+			}else if(fileName.contains("F3")){
+				count = 30;
+
+			}else if(fileName.contains("F4")){
+				count = 40;
+
+			}else if(fileName.contains("F5")){
+				count = 50;
+
+			}else if(fileName.contains("F6")){
+				count = 60;
+
+			}else if(fileName.contains("F7")){
+				count = 70;
+
+			}else if(fileName.contains("F8")){
+				count = 80;
+
+			}else if(fileName.contains("F9")){
+				count = 90;
+
+			}else if(fileName.contains("F10")){
+				count = 101;
+			}
+
+			selectedIndexes = new int[count];
+			for(int i=0; i< count; i++)
+				selectedIndexes[i] = i;
+			maxColumnIndex = count;
+		}
+		else {
+			int count = 101;
+			selectedIndexes = new int[count];
+			for(int i=0; i< count; i++)
+				selectedIndexes[i] = i;
+			maxColumnIndex = count;
+		}
+
+		return new Pair<>(selectedIndexes, maxColumnIndex);
 
 	}
 }

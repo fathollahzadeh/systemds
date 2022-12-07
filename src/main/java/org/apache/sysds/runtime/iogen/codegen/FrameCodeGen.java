@@ -36,7 +36,7 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 			"import org.apache.hadoop.mapred.RecordReader;\n" +
 			"import org.apache.sysds.runtime.iogen.CustomProperties;\n" +
 			"import org.apache.sysds.runtime.iogen.template."+javaBaseClass+";\n" +
-			"import org.apache.sysds.runtime.matrix.data.FrameBlock;\n" +
+			"import org.apache.sysds.runtime.frame.data.FrameBlock;\n" +
 			"import java.io.IOException;\n" +
 			"import java.util.HashSet;\n" +
 			"import org.apache.sysds.runtime.iogen.template.TemplateUtil; \n" +

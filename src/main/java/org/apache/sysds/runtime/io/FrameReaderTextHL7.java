@@ -36,22 +36,35 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.*;
+import org.apache.sysds.common.Types;
 import org.apache.sysds.common.Types.ValueType;
 import org.apache.sysds.conf.ConfigurationManager;
 import org.apache.sysds.runtime.DMLRuntimeException;
-import org.apache.sysds.runtime.matrix.data.FrameBlock;
+import org.apache.sysds.runtime.frame.data.FrameBlock;
+import org.apache.sysds.runtime.iogen.template.TemplateUtil;
+import org.apache.sysds.runtime.matrix.data.Pair;
+import org.apache.sysds.runtime.util.CommonThreadPool;
 import org.apache.sysds.runtime.util.UtilFunctions;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 public class FrameReaderTextHL7 extends FrameReader {
+	protected int _numThreads;
+	protected static JobConf job;
+	protected static TemplateUtil.SplitOffsetInfos _offsets;
+	protected int _rLen;
+	protected int _cLen;
 	protected static FileFormatPropertiesHL7 _props;
 
 	public FrameReaderTextHL7(FileFormatPropertiesHL7 props) {
 		//if unspecified use default properties for robustness
 		_props = props;
+		_numThreads = 1;
 	}
 
 	@Override
@@ -59,7 +72,7 @@ public class FrameReaderTextHL7 extends FrameReader {
 		throws IOException, DMLRuntimeException {
 		LOG.debug("readFrameFromHDFS HL7");
 		// prepare file access
-		JobConf job = new JobConf(ConfigurationManager.getCachedJobConf());
+		job = new JobConf(ConfigurationManager.getCachedJobConf());
 		Path path = new Path(fname);
 		FileSystem fs = IOUtilFunctions.getFileSystem(path, job);
 		FileInputFormat.addInputPath(job, path);
@@ -72,29 +85,43 @@ public class FrameReaderTextHL7 extends FrameReader {
 		InputSplit[] splits = informat.getSplits(job, 1);
 		splits = IOUtilFunctions.sortInputSplits(splits);
 
-		rlen = computeHL7NRows(informat, job, splits);
 		String[] lnames = createOutputNames(names, clen);
-		FrameBlock ret = createOutputFrameBlock(schema, lnames, rlen);
+		FrameBlock ret = computeSizeAndCreateOutputFrameBlock(informat, job, schema, lnames, splits, "MSH|");
 
 		// core read (sequential/parallel)
-		readHL7FrameFromHDFS(informat, job, splits, ret, schema);
+		readHL7FrameFromHDFS(informat, splits, ret, schema);
 		return ret;
 	}
 
-	protected int computeHL7NRows(TextInputFormat informat, JobConf job, InputSplit[] splits) throws IOException {
-		int row = 0;
-		LongWritable key = new LongWritable();
-		Text value = new Text();
-		for(int i = 0; i < splits.length; i++) {
-			RecordReader<LongWritable, Text> reader = informat.getRecordReader(splits[i], job, Reporter.NULL);
-			while(reader.next(key, value)) {
-				String raw = value.toString().trim();
-				if(raw.startsWith("MSH|")) {
-					row++;
-				}
+	protected FrameBlock computeSizeAndCreateOutputFrameBlock(TextInputFormat informat, JobConf job,
+		Types.ValueType[] schema, String[] names, InputSplit[] splits, String beginToken)
+		throws IOException, DMLRuntimeException {
+		_rLen = 0;
+		_cLen = names.length;
+
+		// count rows in parallel per split
+		try {
+			_offsets = new TemplateUtil.SplitOffsetInfos(splits.length);
+			for(int i = 0; i < splits.length; i++) {
+				TemplateUtil.SplitInfo splitInfo = new TemplateUtil.SplitInfo();
+				_offsets.setSeqOffsetPerSplit(i, splitInfo);
+				_offsets.setOffsetPerSplit(i, 0);
+			}
+
+			int splitIndex = 0;
+			for(InputSplit split : splits) {
+				Integer nextOffset = splitIndex + 1 == splits.length ? null : splitIndex + 1;
+				Integer nrows = countRows(_offsets, splitIndex, nextOffset, split, informat, job, beginToken);
+				_offsets.setOffsetPerSplit(splitIndex, _rLen);
+				_rLen += nrows;
+				splitIndex++;
 			}
 		}
-		return row;
+		catch(Exception e) {
+			throw new IOException("Compute Size and Create Output Frame Block Error " + e.getMessage(), e);
+		}
+		FrameBlock ret = createOutputFrameBlock(schema, names, _rLen);
+		return ret;
 	}
 
 	@Override
@@ -137,69 +164,113 @@ public class FrameReaderTextHL7 extends FrameReader {
 
 	}
 
-	protected void readHL7FrameFromHDFS(TextInputFormat informat, JobConf job, InputSplit[] splits, FrameBlock dest,
-		ValueType[] schema) throws IOException {
+	protected void readHL7FrameFromHDFS(TextInputFormat informat, InputSplit[] splits, FrameBlock dest, ValueType[] schema) throws IOException {
 		LOG.debug("readHL7FrameFromHDFS Message");
-		int rowIndex = 0;
+
 		for(int i = 0; i < splits.length; i++)
-			rowIndex = readHL7FrameFromInputSplit(splits[i], rowIndex, informat, job, dest, schema);
+			readHL7FrameFromInputSplit(informat, splits[i], i, schema, dest);
 
 	}
 
-	protected final int readHL7FrameFromInputSplit(InputSplit split, int rowIndex,
-		InputFormat<LongWritable, Text> informat, JobConf job, FrameBlock dest, ValueType[] schema) throws IOException {
+	private static void addRow(String messageString, PipeParser pipeParser, FrameBlock dest, Types.ValueType[] schema, int row) throws IOException {
+		if(messageString.length() > 0) {
+			try {
+				// parse HL7 message
+				Message message = pipeParser.parse(messageString.toString());
+				ArrayList<String> values = new ArrayList<>();
+				groupEncode(message, values);
+				if(_props.isReadAllValues()) {
+					int col = 0;
+					for(String s : values)
+						dest.set(row, col++, UtilFunctions.stringToObject(schema[col], s));
+				}
+				else if(_props.isRangeBaseRead()) {
+					for(int i = 0; i < _props.getMaxColumnIndex(); i++)
+						dest.set(row, i, UtilFunctions.stringToObject(schema[i], values.get(i)));
+				}
+				else {
+					for(int i = 0; i < _props.getSelectedIndexes().length; i++) {
+						dest.set(row, i,
+							UtilFunctions.stringToObject(schema[_props.getSelectedIndexes()[i]], values.get(_props.getSelectedIndexes()[i])));
+					}
+				}
+			}
+			catch(Exception exception) {
+				throw new IOException("Can't part hel7 message:", exception);
+			}
+		}
+	}
 
-		// create record reader
+	protected static int readHL7FrameFromInputSplit(TextInputFormat informat, InputSplit split,  int splitCount, Types.ValueType[] schema, FrameBlock dest) throws IOException {
 		RecordReader<LongWritable, Text> reader = informat.getRecordReader(split, job, Reporter.NULL);
 		LongWritable key = new LongWritable();
 		Text value = new Text();
-		int row = rowIndex, col = 0;
-		// Read the data
-		StringBuilder messageString = new StringBuilder();
-		PipeParser pipeParser = new PipeParser();
-		try {
-			while(reader.next(key, value)) // foreach line
-			{
-				String rowStr = value.toString().trim();
-				if(rowStr.length() == 0)
-					continue;
+		int rpos = _offsets.getOffsetPerSplit(splitCount);
+		TemplateUtil.SplitInfo splitInfo = _offsets.getSeqOffsetPerSplit(splitCount);
 
-				if(rowStr.startsWith("MSH|")) {
-					if(messageString.length() > 0) {
-						try {
-							// parse HL7 message
-							Message message = pipeParser.parse(messageString.toString());
-							ArrayList<String> values = new ArrayList<>();
-							groupEncode(message, values);
-							if(_props.isReadAllValues()) {
-								col = 0;
-								for(String s : values)
-									dest.set(row, col++, UtilFunctions.stringToObject(ValueType.STRING, s));
-							}
-							else if(_props.isRangeBaseRead()){
-								for(int i = 0; i<_props.getMaxColumnIndex();i++)
-									dest.set(row, i, UtilFunctions.stringToObject(ValueType.STRING, values.get(i)));
-							}
-							else{
-								for(int i =0; i< _props.getSelectedIndexes().length; i++) {
-									dest.set(row, i, UtilFunctions.stringToObject(ValueType.STRING, values.get(_props.getSelectedIndexes()[i])));
-								}
-							}
-						}
-						catch(Exception exception) {
-							throw new IOException("Can't part hel7 message:", exception);
-						}
-						row++;
-						messageString = new StringBuilder();
-					}
-				}
-				messageString.append(rowStr);
+		int rlen = splitInfo.getNrows();
+		int ri;
+		int row = 0;
+		int beginPosStr, endPosStr;
+		String remainStr = "";
+		String str = "";
+		StringBuilder sb = new StringBuilder(splitInfo.getRemainString());
+		long beginIndex = splitInfo.getRecordIndexBegin(0);
+		long endIndex = splitInfo.getRecordIndexEnd(0);
+		boolean flag;
+
+		PipeParser pipeParser = new PipeParser();
+		if(sb.length() > 0) {
+			ri = 0;
+			while(ri < beginIndex) {
+				reader.next(key, value);
+				sb.append(value.toString());
+				ri++;
 			}
+			reader.next(key, value);
+			String valStr = value.toString();
+			sb.append(valStr.substring(0, splitInfo.getRecordPositionBegin(0)));
+
+			addRow(sb.toString(), pipeParser, dest, schema, row + rpos);
+			row++;
+			sb = new StringBuilder(valStr.substring(splitInfo.getRecordPositionBegin(0)));
 		}
-		finally {
-			IOUtilFunctions.closeSilently(reader);
+		else {
+			ri = -1;
 		}
-		return row;
+
+		int rowCounter = 0;
+		while(row < rlen) {
+			flag = reader.next(key, value);
+			if(flag) {
+				ri++;
+				String valStr = value.toString();
+				if(ri >= beginIndex && ri <= endIndex) {
+					beginPosStr = ri == beginIndex ? splitInfo.getRecordPositionBegin(rowCounter) : 0;
+					endPosStr = ri == endIndex ? splitInfo.getRecordPositionEnd(rowCounter) : valStr.length();
+					sb.append(valStr.substring(beginPosStr, endPosStr));
+					remainStr = valStr.substring(endPosStr);
+					continue;
+				}
+				else {
+					str = sb.toString();
+					sb = new StringBuilder();
+					sb.append(remainStr).append(valStr);
+					if(rowCounter + 1 < splitInfo.getListSize()) {
+						beginIndex = splitInfo.getRecordIndexBegin(rowCounter + 1);
+						endIndex = splitInfo.getRecordIndexEnd(rowCounter + 1);
+					}
+					rowCounter++;
+				}
+			}
+			else {
+				str = sb.toString();
+				sb = new StringBuilder();
+			}
+			addRow(str, pipeParser, dest, schema, row);
+			row++;
+		}
+		return row + rpos;
 	}
 
 	protected static void groupEncode(Group groupObject, ArrayList<String> values) {
@@ -310,5 +381,65 @@ public class FrameReaderTextHL7 extends FrameReader {
 		for(int i = 0; i < components.length; ++i) {
 			encode(components[i], values);
 		}
+	}
+
+	protected static int countRows(TemplateUtil.SplitOffsetInfos offsets, Integer curOffset, Integer nextOffset,
+		InputSplit split, TextInputFormat inputFormat, JobConf job, String beginToken) throws IOException {
+		int nrows = 0;
+
+		ArrayList<Pair<Long, Integer>> beginIndexes = TemplateUtil.getTokenIndexOnMultiLineRecords(split, inputFormat, job, beginToken).getKey();
+		ArrayList<Pair<Long, Integer>> endIndexes = new ArrayList<>();
+		for(int i = 1; i < beginIndexes.size(); i++)
+			endIndexes.add(beginIndexes.get(i));
+		int i = 0;
+		int j = 0;
+
+		if(beginIndexes.get(0).getKey() > 0)
+			nrows++;
+
+		while(i < beginIndexes.size() && j < endIndexes.size()) {
+			Pair<Long, Integer> p1 = beginIndexes.get(i);
+			Pair<Long, Integer> p2 = endIndexes.get(j);
+			int n = 0;
+			while(p1.getKey() < p2.getKey() || (p1.getKey() == p2.getKey() && p1.getValue() < p2.getValue())) {
+				n++;
+				i++;
+				if(i == beginIndexes.size()) {
+					break;
+				}
+				p1 = beginIndexes.get(i);
+			}
+			j += n - 1;
+			offsets.getSeqOffsetPerSplit(curOffset).addIndexAndPosition(beginIndexes.get(i - n).getKey(), endIndexes.get(j).getKey(),
+					beginIndexes.get(i - n).getValue(), endIndexes.get(j).getValue());
+			j++;
+			nrows++;
+		}
+		if(nextOffset != null) {
+			RecordReader<LongWritable, Text> reader = inputFormat.getRecordReader(split, job, Reporter.NULL);
+			LongWritable key = new LongWritable();
+			Text value = new Text();
+
+			StringBuilder sb = new StringBuilder();
+
+			for(long ri = 0; ri < beginIndexes.get(beginIndexes.size() - 1).getKey(); ri++) {
+				reader.next(key, value);
+			}
+			if(reader.next(key, value)) {
+				String strVar = value.toString();
+				sb.append(strVar.substring(beginIndexes.get(beginIndexes.size() - 1).getValue()));
+				while(reader.next(key, value)) {
+					sb.append(value.toString());
+				}
+				offsets.getSeqOffsetPerSplit(nextOffset).setRemainString(sb.toString());
+			}
+		}
+		else {
+			nrows++;
+			offsets.getSeqOffsetPerSplit(curOffset).addIndexAndPosition(endIndexes.get(endIndexes.size() -1).getKey(),	split.getLength()-1,0, 0);
+		}
+		offsets.getSeqOffsetPerSplit(curOffset).setNrows(nrows);
+		offsets.setOffsetPerSplit(curOffset, nrows);
+		return nrows;
 	}
 }

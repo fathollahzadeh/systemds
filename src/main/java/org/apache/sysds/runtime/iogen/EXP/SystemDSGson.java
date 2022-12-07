@@ -3,7 +3,7 @@ package org.apache.sysds.runtime.iogen.EXP;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.runtime.io.FrameReaderJSONGson;
 import org.apache.sysds.runtime.io.FrameReaderJSONGsonParallel;
-import org.apache.sysds.runtime.matrix.data.FrameBlock;
+import org.apache.sysds.runtime.frame.data.FrameBlock;
 import org.apache.wink.json4j.JSONException;
 
 import java.io.IOException;

@@ -26,7 +26,7 @@ import org.apache.sysds.runtime.io.MatrixReader;
 import org.apache.sysds.runtime.io.FrameReader;
 import org.apache.sysds.runtime.iogen.codegen.FrameCodeGen;
 import org.apache.sysds.runtime.iogen.codegen.MatrixCodeGen;
-import org.apache.sysds.runtime.matrix.data.FrameBlock;
+import org.apache.sysds.runtime.frame.data.FrameBlock;
 import org.apache.sysds.runtime.matrix.data.MatrixBlock;
 
 import java.util.Random;
