@@ -190,8 +190,7 @@ public class FrameReaderTextHL7 extends FrameReader {
 				}
 				else {
 					for(int i = 0; i < _props.getSelectedIndexes().length; i++) {
-						dest.set(row, i,
-							UtilFunctions.stringToObject(schema[_props.getSelectedIndexes()[i]], values.get(_props.getSelectedIndexes()[i])));
+						dest.set(row, i, UtilFunctions.stringToObject(schema[i], values.get(_props.getSelectedIndexes()[i])));
 					}
 				}
 			}
@@ -205,12 +204,11 @@ public class FrameReaderTextHL7 extends FrameReader {
 		RecordReader<LongWritable, Text> reader = informat.getRecordReader(split, job, Reporter.NULL);
 		LongWritable key = new LongWritable();
 		Text value = new Text();
-		int rpos = _offsets.getOffsetPerSplit(splitCount);
+		int row = _offsets.getOffsetPerSplit(splitCount);
 		TemplateUtil.SplitInfo splitInfo = _offsets.getSeqOffsetPerSplit(splitCount);
 
 		int rlen = splitInfo.getNrows();
 		int ri;
-		int row = 0;
 		int beginPosStr, endPosStr;
 		String remainStr = "";
 		String str = "";
@@ -231,7 +229,7 @@ public class FrameReaderTextHL7 extends FrameReader {
 			String valStr = value.toString();
 			sb.append(valStr.substring(0, splitInfo.getRecordPositionBegin(0)));
 
-			addRow(sb.toString(), pipeParser, dest, schema, row + rpos);
+			addRow(sb.toString(), pipeParser, dest, schema, row);
 			row++;
 			sb = new StringBuilder(valStr.substring(splitInfo.getRecordPositionBegin(0)));
 		}
@@ -270,7 +268,7 @@ public class FrameReaderTextHL7 extends FrameReader {
 			addRow(str, pipeParser, dest, schema, row);
 			row++;
 		}
-		return row + rpos;
+		return row;
 	}
 
 	protected static void groupEncode(Group groupObject, ArrayList<String> values) {

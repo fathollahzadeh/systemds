@@ -39,13 +39,17 @@ public class FileFormatPropertiesHL7 extends FileFormatProperties implements Ser
 		this.selectedIndexes = selectedIndexes;
 		this.maxColumnIndex = maxColumnIndex;
 
-		if(this.maxColumnIndex == -1)
+		if(this.maxColumnIndex == -1) {
 			this.readAllValues = true;
+			this.queryFilter = false;
+			this.rangeBaseRead = false;
+		}
 		else {
 			this.readAllValues = false;
 			if(this.selectedIndexes.length > 0) {
 				this.queryFilter = true;
 				this.rangeBaseRead = false;
+				this.readAllValues = false;
 				this.maxColumnIndex = this.selectedIndexes[0];
 				for(int i=1; i< this.selectedIndexes.length; i++)
 					this.maxColumnIndex = Math.max(this.maxColumnIndex, this.selectedIndexes[i]);
@@ -53,6 +57,7 @@ public class FileFormatPropertiesHL7 extends FileFormatProperties implements Ser
 			else {
 				this.rangeBaseRead = true;
 				this.queryFilter = false;
+				this.readAllValues = false;
 			}
 		}
 	}

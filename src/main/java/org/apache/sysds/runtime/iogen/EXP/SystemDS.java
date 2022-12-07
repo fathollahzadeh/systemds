@@ -1,13 +1,11 @@
 package org.apache.sysds.runtime.iogen.EXP;
 
-import com.google.gson.Gson;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.runtime.frame.data.FrameBlock;
 import org.apache.sysds.runtime.io.*;
 import org.apache.sysds.runtime.matrix.data.Pair;
 import org.apache.wink.json4j.JSONException;
 import org.apache.wink.json4j.JSONObject;
-import scala.Int;
 
 import java.io.IOException;
 import java.util.Map;
@@ -79,9 +77,6 @@ public class SystemDS {
 
 		}
 		catch(Exception exception) {}
-
-		Gson gson = new Gson();
-		System.out.println(gson.toJson(dataType));
 
 		if(dataType.equalsIgnoreCase("matrix")) {
 			MatrixReader matrixReader = null;
@@ -188,6 +183,7 @@ public class SystemDS {
 						cols = schema.length;
 						Pair<int[], Integer> pair = getHL7Properties(System.getProperty("schemaMapFileName"));
 						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(pair.getKey(), pair.getValue());
+
 						FrameReaderTextHL7 hl7 = new FrameReaderTextHL7(properties);
 						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, cols);
 				}
