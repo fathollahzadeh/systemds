@@ -264,9 +264,9 @@ public class SystemDS {
 		Integer maxColumnIndex = -1;
 		if(fileName.contains("Q1") || fileName.contains("Q2")){
 			if (fileName.contains("Q1"))
-				selectedIndexes = new int[] {14, 15, 16, 17};
+				selectedIndexes = new int[] {17,18,19,20};
 			else
-				selectedIndexes = new int[] {19,20,21,22,23};
+				selectedIndexes = new int[] {26,27,28,34,35,36,37,38,39,41};
 			maxColumnIndex = 0;
 		}
 		else if(fileName.contains("F1") || fileName.contains("F2") || fileName.contains("F3") ||

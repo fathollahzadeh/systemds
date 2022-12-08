@@ -65,7 +65,7 @@ public class FrameHL7Test extends HL7ReaderFrameTest {
 			schema[i] = Types.ValueType.STRING;
 			names[i] = "nam_" + i;
 		}
-		int[] list = {1,5,10,15,20};
+		int[] list = {26,27,28,24,45};
 		FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(list, 10);
 		runGenerateReaderTest(false, schema, names, properties);
 	}

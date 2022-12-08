@@ -66,12 +66,12 @@ protected void runGenerateReaderTest(boolean parallel, Types.ValueType[] schema,
 		FrameBlock fb;
 		if(!parallel) {
 			FrameReaderTextHL7 hl7 = new FrameReaderTextHL7(properties);
-			fb = hl7.readFrameFromHDFS("/home/saeed/Documents/tmp/message-hl7.dat", schema,
+			fb = hl7.readFrameFromHDFS("/home/saeed/Documents/tmp/message-hl72.dat", schema,
 				names, -1, names.length);
 		}
 		else {
 			FrameReaderTextHL7Parallel hl7Parallel = new FrameReaderTextHL7Parallel(properties);
-			fb = hl7Parallel.readFrameFromHDFS("/home/saeed/Documents/tmp/message-hl7.dat", schema,
+			fb = hl7Parallel.readFrameFromHDFS("/home/saeed/Documents/tmp/message-hl72.dat", schema,
 				names, -1, names.length);
 		}
 
