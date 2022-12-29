@@ -106,7 +106,6 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 			src.append("else { \n");
 			src.append("str = sb.toString(); \n");
 			src.append("sb = new StringBuilder(); \n");
-			src.append("sb = new StringBuilder(); \n");
 			src.append("sb.append(remainStr).append(valStr); \n");
 			src.append("if(rowCounter + 1 < splitInfo.getListSize()) { \n");
 			src.append("beginIndex = splitInfo.getRecordIndexBegin(rowCounter + 1); \n");
@@ -129,6 +128,7 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 		src.append("} \n");
 		src.append("} \n");
 		src.append("catch(Exception ex){ \n");
+		src.append("ex.printStackTrace(); \n");
 		src.append("} \n");
 		src.append("return row; \n");
 		return javaTemplate.replace(code, src.toString());

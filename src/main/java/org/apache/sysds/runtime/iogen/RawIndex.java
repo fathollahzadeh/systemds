@@ -306,10 +306,12 @@ public class RawIndex {
 		}
 	}
 
-	public String getRemainedTexts(int endPos) {
+	public String getRemainedTexts(int startPos, int endPos) {
 		StringBuilder sb = new StringBuilder();
 		StringBuilder result = new StringBuilder();
-		for(int i = 0; i < endPos; i++) {
+		if(endPos == -1)
+			endPos = rawLength;
+		for(int i = startPos; i < endPos; i++) {
 			if(!reservedPositions.get(i))
 				sb.append(raw.charAt(i));
 			else {
