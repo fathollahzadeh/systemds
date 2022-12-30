@@ -21,6 +21,7 @@ package org.apache.sysds.runtime.iogen.codegen;
 
 import org.apache.sysds.runtime.iogen.ColIndexStructure;
 import org.apache.sysds.runtime.iogen.CustomProperties;
+import org.apache.sysds.runtime.iogen.FormatIdentifyer;
 import org.apache.sysds.runtime.iogen.RowIndexStructure;
 import org.apache.sysds.runtime.iogen.template.TemplateCodeGenBase;
 
@@ -39,7 +40,7 @@ public class MatrixCodeGen extends TemplateCodeGenBase {
 			"import org.apache.sysds.runtime.matrix.data.MatrixBlock;\n" +
 			"import java.io.IOException;\n" +
 			"import java.util.HashSet;\n" +
-			"import org.apache.sysds.runtime.util.UtilFunctions; \n" +
+			"import org.apache.sysds.runtime.io.IOUtilFunctions; \n" +
 			"import org.apache.commons.lang.mutable.MutableInt; \n" +
 			"import org.apache.sysds.runtime.iogen.template.TemplateUtil; \n" +
 			"public class "+className+" extends "+javaBaseClass+" {\n" +
@@ -55,17 +56,17 @@ public class MatrixCodeGen extends TemplateCodeGenBase {
 	}
 
 	@Override
-	public String generateCodeJava() {
+	public String generateCodeJava(FormatIdentifyer formatIdentifyer) {
 
 		StringBuilder src = new StringBuilder();
-		CodeGenTrie trie = new CodeGenTrie(properties, "dest.appendValue", true);
+		CodeGenTrie trie = new CodeGenTrie(properties, "dest.appendValue", true, formatIdentifyer);
 
 		src.append("String str=\"\"; \n");
 		src.append("String remainStr = \"\"; \n");
 		src.append("int col = -1; \n");
 		src.append("int row = rowPos.intValue(); \n");
 		src.append("long lnnz = 0; \n");
-		src.append("int index, endPos, strLen; \n");
+		src.append("int index, indexConflict, endPos, strLen; \n");
 
 		boolean flag1 = false;
 		boolean flag2 = false;

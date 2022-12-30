@@ -20,6 +20,7 @@
 package org.apache.sysds.runtime.iogen.template;
 
 import org.apache.sysds.runtime.iogen.CustomProperties;
+import org.apache.sysds.runtime.iogen.FormatIdentifyer;
 
 public abstract class TemplateCodeGenBase {
 
@@ -36,7 +37,7 @@ public abstract class TemplateCodeGenBase {
 		this.className = className;
 	}
 
-	public abstract String generateCodeJava();
+	public abstract String generateCodeJava( FormatIdentifyer formatIdentifyer);
 
 	public abstract String generateCodeCPP();
 }

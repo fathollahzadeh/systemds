@@ -399,4 +399,8 @@ public class MappingTrie {
 			}
 		}
 	}
+
+	public void setWindowSize(int windowSize) {
+		this.windowSize = windowSize;
+	}
 }

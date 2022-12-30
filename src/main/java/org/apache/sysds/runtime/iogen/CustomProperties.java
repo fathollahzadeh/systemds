@@ -32,7 +32,6 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 	private KeyTrie[] colKeyPatterns;
 	private KeyTrie valueKeyPattern;
 	private Types.ValueType[] schema;
-
 	private String[] conflicts;
 	private int ncols;
 	private boolean sparse;

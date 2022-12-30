@@ -20,6 +20,7 @@
 package org.apache.sysds.runtime.iogen.codegen;
 
 import org.apache.sysds.runtime.iogen.CustomProperties;
+import org.apache.sysds.runtime.iogen.FormatIdentifyer;
 import org.apache.sysds.runtime.iogen.RowIndexStructure;
 import org.apache.sysds.runtime.iogen.template.TemplateCodeGenBase;
 
@@ -39,6 +40,7 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 			"import org.apache.sysds.runtime.frame.data.FrameBlock;\n" +
 			"import java.io.IOException;\n" +
 			"import java.util.HashSet;\n" +
+			"import org.apache.sysds.runtime.io.IOUtilFunctions; \n" +
 			"import org.apache.sysds.runtime.iogen.template.TemplateUtil; \n" +
 			"import org.apache.sysds.runtime.util.UtilFunctions; \n" +
 			"public class "+className+" extends "+javaBaseClass+" {\n" +
@@ -52,15 +54,16 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 	}
 
 	@Override
-	public String generateCodeJava() {
+	public String generateCodeJava(FormatIdentifyer formatIdentifyer) {
 		StringBuilder src = new StringBuilder();
-		CodeGenTrie trie = new CodeGenTrie(properties, "dest.set", false);
+		CodeGenTrie trie = new CodeGenTrie(properties, "dest.set", false, formatIdentifyer);
 		String javaCode = trie.getJavaCode();
 		src.append("String str=\"\"; \n");
+		src.append("String arrayStr=\"\";");
 		src.append("String remainStr = \"\"; \n");
 		src.append("int col = -1; \n");
 		src.append("long lnnz = 0; \n");
-		src.append("int index, endPos, strLen; \n");
+		src.append("int index, indexConflict, indexArray, endPos, strLen; \n");
 		src.append("HashSet<String>[] endWithValueString = _props.endWithValueStrings(); \n");
 		src.append("try { \n");
 		if(properties.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.SeqScatter){
