@@ -60,7 +60,6 @@ public class MatrixCodeGen extends TemplateCodeGenBase {
 
 		StringBuilder src = new StringBuilder();
 		CodeGenTrie trie = new CodeGenTrie(properties, "dest.appendValue", true, formatIdentifyer);
-
 		src.append("String str=\"\"; \n");
 		src.append("String remainStr = \"\"; \n");
 		src.append("int col = -1; \n");
@@ -134,7 +133,6 @@ public class MatrixCodeGen extends TemplateCodeGenBase {
 		src.append("return lnnz; \n");
 		return javaTemplate.replace(code, src.toString());
 	}
-
 
 	@Override
 	public String generateCodeCPP() {

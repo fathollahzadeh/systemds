@@ -19,7 +19,6 @@
 
 package org.apache.sysds.runtime.iogen;
 
-import com.google.gson.Gson;
 import org.apache.spark.sql.sources.In;
 import org.apache.sysds.hops.OptimizerUtils;
 import org.apache.sysds.lops.Lop;
@@ -29,6 +28,7 @@ import org.apache.sysds.runtime.matrix.data.Pair;
 import org.apache.sysds.runtime.util.CommonThreadPool;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
@@ -42,7 +42,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 public class FormatIdentifyer {
-
 	private int[][] mapRow;
 	private int[][] mapCol;
 	private int[][] mapLen;
@@ -131,9 +130,7 @@ public class FormatIdentifyer {
 			// #1
 			if(rowIndexStructure.getProperties() == RowIndexStructure.IndexProperties.Identity &&
 				colIndexStructure.getProperties() == ColIndexStructure.IndexProperties.Identity) {
-				Pair<KeyTrie[], String[]> pair = buildColsKeyPatternSingleRow();
-				properties.setColKeyPatterns(pair.getKey());
-				properties.setConflicts(pair.getValue());
+				properties.setColKeyPatterns(buildColsKeyPatternSingleRow());
 			}
 
 			// #2
@@ -213,7 +210,7 @@ public class FormatIdentifyer {
 
 				for(int c = ncols - 1; c >= Math.max(ncols - numberOfSelectedCols, 0); c--) {
 					Pair<ArrayList<String>, ArrayList<Integer>> colPrefixString = extractAllPrefixStringsOfAColSingleLine(
-						c, false);
+						c, false, true);
 					ArrayList<String> prefixStrings = colPrefixString.getKey();
 					ArrayList<Integer> prefixStringRowIndexes = colPrefixString.getValue();
 					ArrayList<RawIndex> prefixRawIndex = new ArrayList<>();
@@ -315,7 +312,7 @@ public class FormatIdentifyer {
 
 				for(int c = ncols - 1; c >= Math.max(ncols - numberOfSelectedCols, 0); c--) {
 					Pair<ArrayList<String>, ArrayList<Integer>> colPrefixString = extractAllPrefixStringsOfAColSingleLine(
-						c, false);
+						c, false, true);
 					ArrayList<String> prefixStrings = colPrefixString.getKey();
 					ArrayList<Integer> prefixStringRowIndexes = colPrefixString.getValue();
 					ArrayList<RawIndex> prefixRawIndex = new ArrayList<>();
@@ -475,9 +472,7 @@ public class FormatIdentifyer {
 					updateMapsAndExtractAllSuffixStringsOfColsMultiLine(beginString, endString);
 					rowIndexStructure.setSeqBeginString(beginString);
 					rowIndexStructure.setSeqEndString(endString);
-					Pair<KeyTrie[], String[]> pair = buildColsKeyPatternSingleRow();
-					properties.setColKeyPatterns(pair.getKey());
-					properties.setConflicts(pair.getValue());
+					properties.setColKeyPatterns(buildColsKeyPatternSingleRow());
 				}
 				else {
 					// TODO: extend sequential scattered format algorithm for heterogeneous structures
@@ -840,178 +835,6 @@ public class FormatIdentifyer {
 		return max.getKey();
 	}
 
-	//	private KeyTrie[] buildColsKeyPatternSingleRow2() {
-	//		Pair<ArrayList<String>[], ArrayList<Integer>[]> prefixStrings = extractAllPrefixStringsOfColsSingleLine(false);
-	//
-	//		//		int iii = 0;
-	//		//		for(String s : prefixStrings.getKey()[1]) {
-	//		//			String ss = s.replace("\":[\"", "");
-	//		//			if(!ss.endsWith("authorAffiliations"))
-	//		//				System.out.println(s + "|>>>>>>>>>>> " + iii);
-	//		//			iii++;
-	//		//		}
-	//
-	//		ArrayList<String>[] suffixStrings = extractAllSuffixStringsOfColsSingleLine(false);
-	//		KeyTrie[] colKeyPattens = new KeyTrie[ncols];
-	//		String[] conflicts = new String[ncols];
-	//
-	//		// Clean prefix strings
-	//		for(int c = 0; c < ncols; c++) {
-	//			ArrayList<String> list = prefixStrings.getKey()[c];
-	//			String token = null;
-	//			boolean flag = true;
-	//			for(int w = 1; w < windowSize && flag; w++) {
-	//				HashSet<String> wts = new HashSet<>();
-	//				for(String s : list) {
-	//					if(s.length() < w)
-	//						flag = false;
-	//					else {
-	//						String subStr = s.substring(s.length() - w);
-	//						if(!subStr.contains(Lop.OPERAND_DELIMITOR))
-	//							wts.add(subStr);
-	//						else
-	//							flag = false;
-	//					}
-	//				}
-	//
-	//				if(flag) {
-	//					if(wts.size() == 1)
-	//						token = wts.iterator().next();
-	//					else {
-	//						for(String t : wts) {
-	//							int count = 0;
-	//							for(String s : list) {
-	//								if(s.endsWith(t))
-	//									count++;
-	//							}
-	//							float percent = (float) count / list.size();
-	//							if(percent >= 1)
-	//								token = t;
-	//						}
-	//					}
-	//				}
-	//				else if(wts.size() == 0)
-	//					token = "";
-	//			}
-	//			if(token == null) {
-	//				int[] listLength = new int[nrows];
-	//				for(int r = 0; r < nrows; r++)
-	//					listLength[r] = mapCol[r][c];
-	//				int commonLength = mostCommonValue(listLength);
-	//				if(commonLength == 0) {
-	//					ArrayList<String> newList = new ArrayList<>();
-	//					for(String s : list) {
-	//						if(s.length() == 0)
-	//							newList.add(s);
-	//					}
-	//					prefixStrings.getKey()[c] = newList;
-	//				}
-	//				else
-	//					throw new RuntimeException("can't build a key pattern for the column: " + c);
-	//			}
-	//			else if(token.length() > 0) {
-	//				ArrayList<String> newList = new ArrayList<>();
-	//				for(String s : list) {
-	//					if(s.endsWith(token))
-	//						newList.add(s);
-	//				}
-	//				prefixStrings.getKey()[c] = newList;
-	//			}
-	//		}
-	//
-	//		for(int c = 0; c < ncols; c++) {
-	//			MappingTrie trie = new MappingTrie();
-	//			int ri = 0;
-	//			boolean check;
-	//			boolean flagReconstruct;
-	//			ArrayList<ArrayList<String>> keyPatterns = null;
-	//
-	//			for(String ps : prefixStrings.getKey()[c])
-	//				trie.reverseInsert(ps, prefixStrings.getValue()[c].get(ri++));
-	//
-	//			if(trie.getRoot().getChildren().size() == 1) {
-	//				String[] splitPattern = prefixStrings.getKey()[c].get(0).split(Lop.OPERAND_DELIMITOR);
-	//				ArrayList<String> reverseSplitPattern = new ArrayList<>();
-	//				for(String ps : splitPattern)
-	//					if(ps.length() > 0)
-	//						reverseSplitPattern.add(ps);
-	//				if(reverseSplitPattern.size() == 0)
-	//					reverseSplitPattern.add("");
-	//
-	//				int maxPatternLength = reverseSplitPattern.size();
-	//				check = false;
-	//				for(int sp = 0; sp < maxPatternLength; sp++) {
-	//					ArrayList<String> shortPattern = new ArrayList<>();
-	//					for(int spi = maxPatternLength - sp - 1; spi < maxPatternLength; spi++) {
-	//						shortPattern.add(reverseSplitPattern.get(spi));
-	//					}
-	//					check = checkKeyPatternIsUnique(prefixStrings.getKey()[c], shortPattern);
-	//					if(check) {
-	//						keyPatterns = new ArrayList<>();
-	//						keyPatterns.add(shortPattern);
-	//						break;
-	//					}
-	//				}
-	//			}
-	//			else {
-	//				do {
-	//					ArrayList<ArrayList<String>> selectedKeyPatterns = new ArrayList<>();
-	//					keyPatterns = trie.getAllSequentialKeys();
-	//					check = false;
-	//					for(ArrayList<String> keyPattern : keyPatterns) {
-	//						boolean newCheck = checkKeyPatternIsUnique(prefixStrings.getKey()[c], keyPattern);
-	//						check |= newCheck;
-	//						if(newCheck)
-	//							selectedKeyPatterns.add(keyPattern);
-	//					}
-	//					if(check)
-	//						keyPatterns = selectedKeyPatterns;
-	//					else {
-	//						flagReconstruct = trie.reConstruct();
-	//						if(!flagReconstruct)
-	//							break;
-	//					}
-	//				}
-	//				while(!check);
-	//			}
-	//
-	//			if(check) {
-	//				colKeyPattens[c] = new KeyTrie(keyPatterns);
-	//				for(String suffix : suffixStrings[c]) {
-	//					colKeyPattens[c].insertSuffixKeys(
-	//						suffix.substring(0, Math.min(suffixStringLength, suffix.length())).toCharArray());
-	//				}
-	//			}
-	//		}
-	//		this.flagBuildConflict = true;
-	//		ArrayList<String>[] tmpKeys = new ArrayList[ncols];
-	//		for(int c = 0; c < ncols; c++) {
-	//			KeyTrie keyTrie = colKeyPattens[c];
-	//			if(keyTrie == null) {
-	//				int a = 100;
-	//			}
-	//			tmpKeys[c] = keyTrie.getReversePrefixKeyPatterns().get(0);
-	//		}
-	//		for(int c = 1; c < ncols && flagBuildConflict; c++) {
-	//			if(tmpKeys[c - 1].size() + 1 != tmpKeys[c].size()) {
-	//				flagBuildConflict = false;
-	//				break;
-	//			}
-	//
-	//			for(int i = 0; i < tmpKeys[c].size() - 1 && flagBuildConflict; i++) {
-	//				flagBuildConflict = tmpKeys[c].get(i).equals(tmpKeys[c - 1].get(i));
-	//			}
-	//		}
-	//		if(!flagBuildConflict) {
-	//			this = extractAllSuffixStringsOfColsSingleLine(true);
-	//			for(int c = 0; c < ncols; c++) {
-	//
-	//				conflicts[c] = getConflictToken(suffixStrings2[c], tmpKeys[c].get(tmpKeys[c].size() - 1));
-	//			}
-	//		}
-	//		return colKeyPattens;
-	//	}
-
 	private KeyTrie buildValueKeyPattern() {
 		int minSelectCols = Math.min(10, ncols);
 		ArrayList<String> prefixStrings = new ArrayList<>();
@@ -1019,7 +842,7 @@ public class FormatIdentifyer {
 		ArrayList<String> suffixStrings = new ArrayList<>();
 
 		for(int c = 0; c < minSelectCols; c++) {
-			Pair<ArrayList<String>, ArrayList<Integer>> pair = extractAllPrefixStringsOfAColSingleLine(c, false);
+			Pair<ArrayList<String>, ArrayList<Integer>> pair = extractAllPrefixStringsOfAColSingleLine(c, false, true);
 			prefixStrings.addAll(pair.getKey());
 			rowIndexes.addAll(pair.getValue());
 		}
@@ -1104,11 +927,11 @@ public class FormatIdentifyer {
 	}
 
 	// Get all prefix strings of a column
-	public Pair<ArrayList<String>[], ArrayList<Integer>[]> extractAllPrefixStringsOfColsSingleLine(boolean reverse) {
+	public Pair<ArrayList<String>[], ArrayList<Integer>[]> extractAllPrefixStringsOfColsSingleLine(boolean reverse, boolean removesSelected) {
 		ArrayList<String>[] prefixStrings = new ArrayList[ncols];
 		ArrayList<Integer>[] rowIndexes = new ArrayList[ncols];
 		for(int c = 0; c < ncols; c++) {
-			Pair<ArrayList<String>, ArrayList<Integer>> pair = extractAllPrefixStringsOfAColSingleLine(c, reverse);
+			Pair<ArrayList<String>, ArrayList<Integer>> pair = extractAllPrefixStringsOfAColSingleLine(c, reverse, removesSelected);
 			prefixStrings[c] = pair.getKey();
 			rowIndexes[c] = pair.getValue();
 		}
@@ -1116,14 +939,18 @@ public class FormatIdentifyer {
 	}
 
 	public Pair<ArrayList<String>, ArrayList<Integer>> extractAllPrefixStringsOfAColSingleLine(int colIndex,
-		boolean reverse) {
+		boolean reverse, boolean removesSelected) {
 		ArrayList<String> prefixStrings = new ArrayList();
 		ArrayList<Integer> rowIndexes = new ArrayList();
 		for(int r = 0; r < nrows; r++) {
 			int rowIndex = mapRow[r][colIndex];
 			if(rowIndex != -1) {
 				rowIndexes.add(rowIndex);
-				String str = sampleRawIndexes.get(rowIndex).getRemainedTexts(0, mapCol[r][colIndex]);
+				String str;
+				if(removesSelected)
+					str = sampleRawIndexes.get(rowIndex).getRemainedTexts(0, mapCol[r][colIndex]);
+				else
+					str = sampleRawIndexes.get(rowIndex).getRaw().substring(0, mapCol[r][colIndex]);
 				if(reverse)
 					prefixStrings.add(new StringBuilder(str).reverse().toString());
 				else
@@ -1355,14 +1182,668 @@ public class FormatIdentifyer {
 			return new Pair<>(-1, -1);
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	private Pair<KeyTrie[], String[]> buildColsKeyPatternSingleRow() {
-		Pair<ArrayList<String>[], ArrayList<Integer>[]> prefixStrings = extractAllPrefixStringsOfColsSingleLine(false);
+	///////////////////////////////////////////////////////////////////////////
+	private Pair<Set<String>, Set<String>> getNewRefineKeys2(String firstKey, int startIndex,
+		ArrayList<String> prefixStrings, Set<String> refineKeys) {
+		LongestCommonSubsequence lcs = new LongestCommonSubsequence();
+		Set<String> setRefineLCS = new HashSet<String>();
+		Set<String> newSetRefineLCS = new HashSet<String>();
+
+		for(String str : refineKeys) {
+			boolean flagRefine = true;
+			boolean hasOnString = false;
+			for(int i = startIndex; i < prefixStrings.size() && !hasOnString; i++) {
+				String str3 = new StringBuilder(prefixStrings.get(i)).reverse().toString();
+				String[] lcsKey = str.split(Lop.OPERAND_DELIMITOR);
+				ArrayList<String> tmpList = new ArrayList<>();
+				for(String sk : lcsKey)
+					if(sk.length() > 0)
+						tmpList.add(sk);
+				tmpList.add(firstKey);
+				Pair<Integer, Integer[]> pair = getIndexOfKeyPatternOnString2(str3, tmpList, 0);
+				flagRefine &= pair.getKey() == str3.length();
+				if(!flagRefine) {
+					hasOnString = pair.getKey() != -1;
+				}
+			}
+			if(flagRefine)
+				setRefineLCS.add(str);
+			else if(!hasOnString) {
+				if(str.contains("PID|")){
+					int aaa = 100;
+				}
+				boolean flag = true;
+				Set<String> tmpSet = new HashSet<String>();
+				for(int i = startIndex; i < prefixStrings.size() ; i++) {
+					String str1 = new StringBuilder(prefixStrings.get(i)).reverse().toString();
+					ArrayList<String> list1 = lcs.getLCS(str, str1);
+					ArrayList<String> list2 = lcs.getLCS(str1, str);
+					Set<String> set = new HashSet<String>();
+					set.addAll(list1);
+					set.addAll(list2);
+
+					//Set<String> refineKeysStep = new HashSet<>();
+					for(String lcsKeys : set) {
+						String[] lcsKey = lcsKeys.split(Lop.OPERAND_DELIMITOR);
+						ArrayList<String> tmpList = new ArrayList<>();
+						for(String sk : lcsKey)
+							if(sk.length() > 0)
+								tmpList.add(sk);
+						tmpList.add(firstKey);
+
+						boolean str1Check = getIndexOfKeyPatternOnString2(str1 + firstKey, tmpList, 0).getKey() ==
+							str1.length() + firstKey.length();
+						if(str1Check)
+							newSetRefineLCS.add(lcsKeys);
+					}
+				}
+				//newSetRefineLCS.addAll(tmpSet);
+				int k = 500;
+			}
+		}
+
+		return new Pair<>(setRefineLCS, newSetRefineLCS);
+
+	}
+
+	private Pair<Set<String>, Set<String>> getNewRefineKeys(LongestCommonSubsequence lcs, String firstKey,
+		ArrayList<String> prefixesRemoved, ArrayList<String> prefixes, Set<String> refineKeys) {
+
+		Set<String> setRefineLCS = new HashSet<String>();
+		Set<String> newSetRefineLCS = new HashSet<String>();
+
+		for(String refineKey : refineKeys) {
+			boolean flagRefine = true;
+			boolean isInTheMiddleOfString = false;
+			String[] lcsKey = (refineKey+Lop.OPERAND_DELIMITOR+firstKey).split(Lop.OPERAND_DELIMITOR);
+			ArrayList<String> tmpList = new ArrayList<>();
+			for(String sk : lcsKey)
+				if(sk.length() > 0)
+					tmpList.add(sk);
+
+			for(int i = 0; i < prefixes.size() && !isInTheMiddleOfString; i++) {
+				String str = prefixes.get(i);
+				Pair<Integer, Integer[]> pair = getIndexOfKeyPatternOnString2(str, tmpList, 0);
+				flagRefine &= pair.getKey() == str.length();
+				if(!flagRefine)
+					isInTheMiddleOfString = pair.getKey() != -1;
+			}
+			if(flagRefine)
+				setRefineLCS.add(refineKey);
+			else if(!isInTheMiddleOfString) {
+//				if(str.contains("PID|")){
+//					int aaa = 100;
+//				}
+				//boolean flag = true;
+				//Set<String> tmpSet = new HashSet<String>();
+				for(int i = 0; i < prefixesRemoved.size() ; i++) {
+					String psStr = prefixesRemoved.get(i).substring(0, firstKey.length());
+					ArrayList<String> list1 = lcs.getLCS(refineKey, psStr);
+					ArrayList<String> list2 = lcs.getLCS(psStr, refineKey);
+					Set<String> set = new HashSet<String>();
+					set.addAll(list1);
+					set.addAll(list2);
+
+					for(String lcsKeys : set) {
+						if(setRefineLCS.contains(lcsKeys) || newSetRefineLCS.contains(lcsKey))
+							continue;
+						String[] newLCSKey = (lcsKeys+Lop.OPERAND_DELIMITOR+firstKey).split(Lop.OPERAND_DELIMITOR);
+						ArrayList<String> tmpLCSKeyList = new ArrayList<>();
+						for(String sk : newLCSKey)
+							if(sk.length() > 0)
+								tmpLCSKeyList.add(sk);
+
+						boolean str1Check = getIndexOfKeyPatternOnString2(psStr + firstKey, tmpLCSKeyList, 0).getKey() == 	psStr.length();
+						if(str1Check)
+							newSetRefineLCS.add(lcsKeys);
+					}
+				}
+				//newSetRefineLCS.addAll(tmpSet);
+				int k = 500;
+			}
+		}
+		return new Pair<>(setRefineLCS, newSetRefineLCS);
+	}
+
+	private Set<String> getRefineKeysStep(LongestCommonSubsequence lcs, String string1, String string2,
+		String psString1, String psString2, String firstKey){
+		// remove first key from end of Str1 and Str2
+		String str1 = string1.substring(0, string1.length() - firstKey.length());
+		String str2 = string2.substring(0, string2.length() - firstKey.length());
+
+		ArrayList<String> list1 = lcs.getLCS(str1, str2);
+		ArrayList<String> list2 = lcs.getLCS(str2, str1);
+		Set<String> setLCS = new HashSet<String>();
+		setLCS.addAll(list1);
+		setLCS.addAll(list2);
+
+		Set<String> refineKeysStep = new HashSet<>();
+		for(String lcsKeys : setLCS) {
+			String[] lcsKey = (lcsKeys+Lop.OPERAND_DELIMITOR+firstKey).split(Lop.OPERAND_DELIMITOR);
+			ArrayList<String> tmpList = new ArrayList<>();
+			for(String sk : lcsKey)
+				if(sk.length() > 0)
+					tmpList.add(sk);
+
+			boolean str1Check = getIndexOfKeyPatternOnString2(psString1, tmpList, 0).getKey() == psString1.length();
+			boolean str2Check = getIndexOfKeyPatternOnString2(psString2, tmpList, 0).getKey() == psString2.length();
+			if(str1Check && str2Check)
+				refineKeysStep.add(lcsKeys);
+		}
+		return refineKeysStep;
+	}
+
+	Comparator<String> AscendingStringLengthComparator = new Comparator<String>() {
+		@Override
+		public int compare(String s, String t1) {
+			return s.length() - t1.length();
+		}
+	};
+
+	Comparator<String> DescendingStringLengthComparator = new Comparator<String>() {
+		@Override
+		public int compare(String s, String t1) {
+			return t1.length() - s.length();
+		}
+	};
+
+	Comparator<Pair<String, Integer>> AscendingPairStringComparator = new Comparator<Pair<String, Integer>>() {
+		@Override
+		public int compare(Pair<String, Integer> stringIntegerPair, Pair<String, Integer> t1) {
+			return stringIntegerPair.getKey().length() - t1.getKey().length();
+		}
+	};
+
+	private KeyTrie[] buildColsKeyPatternSingleRow() {
+		ArrayList<String>[] prefixesRemovedReverse = extractAllPrefixStringsOfColsSingleLine(true, true).getKey();
+		ArrayList<String>[] prefixesRemoved = new ArrayList[ncols];
+		ArrayList<String>[] prefixes = extractAllPrefixStringsOfColsSingleLine(false, false).getKey();
+		ArrayList<String>[] suffixes = extractAllSuffixStringsOfColsSingleLine(false);
+		ArrayList<Pair<String, Integer>>[] prefixesRemovedReverseSort = new ArrayList[ncols];
+		ArrayList<String>[] keys = new ArrayList[ncols];
+		LongestCommonSubsequence lcs = new LongestCommonSubsequence();
+
+		// Sort prefixesRemovedReverse list
+		for(int c = 0; c < ncols; c++){
+			keys[c] = new ArrayList<>();
+			Map<String, ArrayList<Integer>> mapPrefixesRemovedReverse = new HashMap<>();
+			for(int i=0; i<prefixesRemovedReverse[c].size(); i++) {
+				StringBuilder sb = new StringBuilder();
+				String str = prefixesRemovedReverse[c].get(i).replaceAll("\\d", Lop.OPERAND_DELIMITOR);
+				for(int j = 0; j< str.length(); j++){
+					String charStr = str.charAt(j)+"";
+					if(!charStr.equals(Lop.OPERAND_DELIMITOR))
+						sb.append(charStr);
+					else if(sb.length() == 0 || !(sb.charAt(sb.length() -1)+"").equals(Lop.OPERAND_DELIMITOR))
+						sb.append(Lop.OPERAND_DELIMITOR);
+				}
+				String sbStr = sb.toString();
+
+				if(!mapPrefixesRemovedReverse.containsKey(sbStr))
+					mapPrefixesRemovedReverse.put(sbStr, new ArrayList<>());
+				mapPrefixesRemovedReverse.get(sbStr).add(i);
+			}
+			prefixesRemovedReverse[c] = new ArrayList<>();
+			prefixesRemoved[c] = new ArrayList<>();
+			prefixesRemovedReverseSort[c] = new ArrayList<>();
+
+			for(String s: mapPrefixesRemovedReverse.keySet()){
+				prefixesRemovedReverseSort[c].add(new Pair<>(s, mapPrefixesRemovedReverse.get(s).get(0)));
+			}
+			prefixesRemovedReverseSort[c].sort(AscendingPairStringComparator);
+			for(Pair<String, Integer> pair: prefixesRemovedReverseSort[c]){
+				prefixesRemovedReverse[c].add(pair.getKey());
+				prefixesRemoved[c].add(new StringBuilder(pair.getKey()).reverse().toString());
+			}
+		}
+
+		// build patterns:
+		for(int c = 0; c < ncols; c++) {
+			if(prefixesRemoved[c].size() == 1){
+				String[] lcsKey = prefixesRemoved[c].get(0).split(Lop.OPERAND_DELIMITOR);
+				keys[c] = new ArrayList<>();
+				for(String sk : lcsKey)
+					if(sk.length() > 0)
+						keys[c].add(sk);
+				continue;
+			}
+
+			String firstKey = "";
+			// STEP 1: find fist key:
+			String selectedString = prefixesRemoved[c].get(0);
+			boolean flag = true;
+			StringBuilder sbToken = new StringBuilder();
+			sbToken.append(selectedString.charAt(selectedString.length() -1));
+			for(int i = 2; i < selectedString.length() && flag; i++) {
+				char ch = selectedString.charAt(selectedString.length()-i);
+				for(int j = 1; j < prefixesRemoved[c].size() && flag; j++) {
+					String str = prefixesRemoved[c].get(j);
+					flag = str.charAt(str.length()-i) == ch;
+				}
+				if(flag)
+					sbToken.append(ch);
+			}
+			firstKey = sbToken.reverse().toString();
+			flag = true;
+
+			String[] lcsKey = firstKey.split(Lop.OPERAND_DELIMITOR);
+			ArrayList<String> tmpList = new ArrayList<>();
+			for(String sk : lcsKey)
+				if(sk.length() > 0)
+					tmpList.add(sk);
+
+			for(int i = 0; i < prefixes[c].size() && flag; i++)
+				flag = getIndexOfKeyPatternOnString2(prefixes[c].get(i), tmpList, 0).getKey() == prefixes[c].get(i).length();
+
+			if(flag) {
+				keys[c] = tmpList;
+				continue;
+			}
+			// STEP 2: add another keys
+			int indexI = 0;
+			int indexJ = 0;
+			Set<String> refineKeysStep = new HashSet<>();
+			do {
+				for(; indexI < prefixesRemovedReverseSort[c].size() - 1 && refineKeysStep.size() == 0; indexI++) {
+					String str1 = prefixesRemoved[c].get(indexI);
+					String psStr1 = prefixes[c].get(prefixesRemovedReverseSort[c].get(indexI).getValue());
+					for(indexJ = indexI + 1;
+						indexJ < prefixesRemovedReverseSort[c].size() && refineKeysStep.size() == 0;
+						indexJ++) {
+						String str2 = prefixesRemoved[c].get(indexJ);
+						String psStr2 = prefixes[c].get(prefixesRemovedReverseSort[c].get(indexJ).getValue());
+						refineKeysStep = getRefineKeysStep(lcs, str1, str2, psStr1, psStr2, firstKey);
+					}
+				}
+				if(refineKeysStep.size() == 0) {
+					int RK = 0;
+				}
+
+				do {
+					Pair<Set<String>, Set<String>> pair = getNewRefineKeys(lcs, firstKey, prefixesRemoved[c], prefixes[c], refineKeysStep);
+					refineKeysStep = pair.getKey();
+					if(pair.getValue().size() == 0)
+						break;
+					else
+						refineKeysStep.addAll(pair.getValue());
+				}
+				while(true);
+
+			} while(refineKeysStep.size() == 0 && indexI < prefixesRemovedReverse[c].size() -1 && indexJ < prefixesRemovedReverse[c].size());
+
+			if(refineKeysStep.size() == 0) {
+				// TODO:
+				int TD = 100;
+				System.out.println("+++++++++++++++++++++++"+c);
+			}
+			else if(refineKeysStep.size() == 1){
+				String[] refinedLCSKey = (refineKeysStep.iterator().next()+Lop.OPERAND_DELIMITOR+firstKey).split(Lop.OPERAND_DELIMITOR);
+				keys[c] = new ArrayList<>();
+				for(String sk : refinedLCSKey)
+					if(sk.length() > 0)
+						keys[c].add(sk);
+			}
+			else{
+				ArrayList<String> sortedStrings = new ArrayList<>();
+				sortedStrings.addAll(refineKeysStep);
+				Collections.sort(sortedStrings, AscendingStringLengthComparator);
+			}
+		}
+
+		int a = 100;
+
+
+//		ArrayList<String>[] prefixStrings = new ArrayList[ncols];
+//		KeyTrie[] colKeyPattens = new KeyTrie[ncols];
+//
+//
+//
+//		ArrayList<String>[] keys = new ArrayList[ncols];
+//		for(int c = 0; c < ncols; c++) {
+//			String firstKey = "";
+//			keys[c] = new ArrayList<>();
+//
+//			Collections.sort(prefixStringsReverse.getKey()[c], stringLengthComparator);
+//
+//			// find fist key:
+//			String selectedString = prefixStringsReverse.getKey()[c].get(0);
+//			int index = selectedString.indexOf(Lop.OPERAND_DELIMITOR);
+//			if(index == -1)
+//				index = selectedString.length();
+//			String strStep1 = selectedString.substring(0, index);
+//			boolean flag = false;
+//			for(int tl = strStep1.length(); tl > 0 && !flag; tl--) {
+//				String token = strStep1.substring(0, tl);
+//				flag = true;
+//				for(int i = 0; i < prefixStringsReverse.getKey()[c].size() && flag; i++)
+//					flag = prefixStringsReverse.getKey()[c].get(i).startsWith(token);
+//				if(flag)
+//					firstKey = new StringBuilder(token).reverse().toString();
+//			}
+//
+//			flag = true;
+//			for(int i = 0; i < prefixStrings[c].size() && flag; i++) {
+//				flag =
+//					prefixStrings[c].get(i).indexOf(firstKey) + firstKey.length() == prefixStrings[c].get(i).length();
+//			}
+//			if(flag) {
+//				keys[c].add(firstKey);
+//				continue;
+//			}
+//			// add another keys:
+//			String str1 = new StringBuilder(selectedString.substring(firstKey.length())).reverse().toString();
+//			String str2 = str1;
+//			int str2Index = 1;
+//			for(; str2Index < prefixStringsReverse.getKey()[c].size() && str1.equals(str2); str2Index++) {
+//				str2 = new StringBuilder(
+//					prefixStringsReverse.getKey()[c].get(str2Index).substring(firstKey.length())).reverse().toString();
+//			}
+//
+//			if(str1.equals(str2)) {
+//				String[] keyList = str1.split(Lop.OPERAND_DELIMITOR);
+//				ArrayList<String> tmpList = new ArrayList<>();
+//				for(String sk : keyList)
+//					if(sk.length() > 0)
+//						tmpList.add(sk);
+//				tmpList.add(firstKey);
+//				keys[c] = tmpList;
+//				continue;
+//			}
+//
+//			str1 = str1.substring(0, str1.length() - firstKey.length());
+//			str2 = str2.substring(0, str2.length() - firstKey.length());
+//
+//			ArrayList<String> list1 = lcs.getLCS(str1, str2);
+//			ArrayList<String> list2 = lcs.getLCS(str2, str1);
+//			Set<String> setLCS = new HashSet<String>();
+//			setLCS.addAll(list1);
+//			setLCS.addAll(list2);
+//
+//			Set<String> refineKeysStep = new HashSet<>();
+//			for(String lcsKeys : setLCS) {
+//				String[] lcsKey = lcsKeys.split(Lop.OPERAND_DELIMITOR);
+//				ArrayList<String> tmpList = new ArrayList<>();
+//				for(String sk : lcsKey)
+//					if(sk.length() > 0)
+//						tmpList.add(sk);
+//				tmpList.add(firstKey);
+//
+//				boolean str1Check = getIndexOfKeyPatternOnString2(str1 + firstKey, tmpList, 0).getKey() ==
+//					str1.length() + firstKey.length();
+//				boolean str2Check = getIndexOfKeyPatternOnString2(str2 + firstKey, tmpList, 0).getKey() ==
+//					str2.length() + firstKey.length();
+//				if(str1Check && str2Check)
+//					refineKeysStep.add(lcsKeys);
+//			}
+//
+//			if(c == 4){
+//				int a = 100;
+//			}
+//
+//			do {
+//				Pair<Set<String>, Set<String>> pair = getNewRefineKeys(firstKey, str2Index,	prefixStringsReverse.getKey()[c], refineKeysStep);
+//				if(refineKeysStep.size() == pair.getKey().size() || pair.getValue().size() == 0)
+//					break;
+//				else
+//					refineKeysStep.addAll(pair.getValue());
+//			}
+//			while(true);
+//
+//			ArrayList<String> sortedStrings = new ArrayList<>();
+//			sortedStrings.addAll(refineKeysStep);
+//			Collections.sort(sortedStrings, stringLengthComparator);
+//
+//
+//			for(int i = sortedStrings.size() - 1; i >= 0; i--) {
+//				String[] keyList = sortedStrings.get(i).split(Lop.OPERAND_DELIMITOR);
+//				ArrayList<String> tmpList = new ArrayList<>();
+//
+//				for(String sk : keyList)
+//					if(sk.length() > 0)
+//						tmpList.add(sk);
+//				tmpList.add(firstKey);
+//				boolean check = true;
+//				Integer[][] positions = new Integer[prefixStrings[c].size()][tmpList.size()];
+//
+//				for(int j = 0; j < prefixStrings[c].size() && check; j++) {
+//					Pair<Integer, Integer[]> checkPair = getIndexOfKeyPatternOnString2(prefixStrings[c].get(j), tmpList,
+//						0);
+//					check = checkPair.getKey() == prefixStrings[c].get(j).length();
+//					if(check) {
+//						positions[j] = checkPair.getValue();
+//					}
+//				}
+//				if(check) {
+//					// optimization
+//					//					ArrayList<Integer> refineList = new ArrayList<>();
+//					//					for(int r = 0; r < tmpList.size() - 1; r++) {
+//					//						boolean refineFlag = true;
+//					//						for(int psi = 0; psi < prefixStrings[c].size() && refineFlag; psi++) {
+//					//							String str = prefixStrings[c].get(psi);
+//					//							int lastIndex = refineList.size() == 0 ? 0 : refineList.get(refineList.size() - 1);
+//					//							int keyIndex = str.indexOf(tmpList.get(r + 1), lastIndex);
+//					//							refineFlag = keyIndex == positions[psi][r + 1];
+//					//
+//					//						}
+//					//						if(!refineFlag)
+//					//							refineList.add(r);
+//					//					}
+//					//					int a = 100;
+//					//					keys[c] = new ArrayList<>();
+//					//					for(Integer ri : refineList)
+//					//						keys[c].add(tmpList.get(ri));
+//					//					keys[c].add(firstKey);
+//
+//					//-----------
+//					keys[c] = tmpList;
+//					System.out.println(c);
+//					break;
+//				}
+//			}
+//
+//			int a = 100;
+//		}
+//		return colKeyPattens;
+		return null;
+	}
+	private KeyTrie[] buildColsKeyPatternSingleRow_1() {
+		Pair<ArrayList<String>[], ArrayList<Integer>[]> prefixStringsReverse = extractAllPrefixStringsOfColsSingleLine(
+			true, true);
+		ArrayList<String>[] prefixStrings = new ArrayList[ncols];
 		ArrayList<String>[] suffixStrings = extractAllSuffixStringsOfColsSingleLine(false);
 		KeyTrie[] colKeyPattens = new KeyTrie[ncols];
-		String[] conflicts = new String[ncols];
 
-		int numThreads = OptimizerUtils.getParallelTextWriteParallelism();
+		LongestCommonSubsequence lcs = new LongestCommonSubsequence();
+
+		for(int c = 0; c < ncols; c++) {
+			prefixStrings[c] = new ArrayList<>();
+			for(String ps : prefixStringsReverse.getKey()[c])
+				prefixStrings[c].add(new StringBuilder(ps).reverse().toString());
+		}
+
+		Comparator<String> stringLengthComparator = new Comparator<String>() {
+			@Override
+			public int compare(String s, String t1) {
+				return s.length() - t1.length();
+			}
+		};
+
+		ArrayList<String>[] keys = new ArrayList[ncols];
+		for(int c = 0; c < ncols; c++) {
+			String firstKey = "";
+			keys[c] = new ArrayList<>();
+
+			Collections.sort(prefixStringsReverse.getKey()[c], stringLengthComparator);
+
+			// find fist key:
+			String selectedString = prefixStringsReverse.getKey()[c].get(0);
+			int index = selectedString.indexOf(Lop.OPERAND_DELIMITOR);
+			if(index == -1)
+				index = selectedString.length();
+			String strStep1 = selectedString.substring(0, index);
+			boolean flag = false;
+			for(int tl = strStep1.length(); tl > 0 && !flag; tl--) {
+				String token = strStep1.substring(0, tl);
+				flag = true;
+				for(int i = 0; i < prefixStringsReverse.getKey()[c].size() && flag; i++)
+					flag = prefixStringsReverse.getKey()[c].get(i).startsWith(token);
+				if(flag)
+					firstKey = new StringBuilder(token).reverse().toString();
+			}
+
+			flag = true;
+			for(int i = 0; i < prefixStrings[c].size() && flag; i++) {
+				flag =
+					prefixStrings[c].get(i).indexOf(firstKey) + firstKey.length() == prefixStrings[c].get(i).length();
+			}
+			if(flag) {
+				keys[c].add(firstKey);
+				continue;
+			}
+			// add another keys:
+			String str1 = new StringBuilder(selectedString.substring(firstKey.length())).reverse().toString();
+			String str2 = str1;
+			int str2Index = 1;
+			for(; str2Index < prefixStringsReverse.getKey()[c].size() && str1.equals(str2); str2Index++) {
+				str2 = new StringBuilder(
+					prefixStringsReverse.getKey()[c].get(str2Index).substring(firstKey.length())).reverse().toString();
+			}
+
+			if(str1.equals(str2)) {
+				String[] keyList = str1.split(Lop.OPERAND_DELIMITOR);
+				ArrayList<String> tmpList = new ArrayList<>();
+				for(String sk : keyList)
+					if(sk.length() > 0)
+						tmpList.add(sk);
+				tmpList.add(firstKey);
+				keys[c] = tmpList;
+				continue;
+			}
+
+			str1 = str1.substring(0, str1.length() - firstKey.length());
+			str2 = str2.substring(0, str2.length() - firstKey.length());
+
+			ArrayList<String> list1 = lcs.getLCS(str1, str2);
+			ArrayList<String> list2 = lcs.getLCS(str2, str1);
+			Set<String> setLCS = new HashSet<String>();
+			setLCS.addAll(list1);
+			setLCS.addAll(list2);
+
+			Set<String> refineKeysStep = new HashSet<>();
+			for(String lcsKeys : setLCS) {
+				String[] lcsKey = lcsKeys.split(Lop.OPERAND_DELIMITOR);
+				ArrayList<String> tmpList = new ArrayList<>();
+				for(String sk : lcsKey)
+					if(sk.length() > 0)
+						tmpList.add(sk);
+				tmpList.add(firstKey);
+
+				boolean str1Check = getIndexOfKeyPatternOnString2(str1 + firstKey, tmpList, 0).getKey() ==
+					str1.length() + firstKey.length();
+				boolean str2Check = getIndexOfKeyPatternOnString2(str2 + firstKey, tmpList, 0).getKey() ==
+					str2.length() + firstKey.length();
+				if(str1Check && str2Check)
+					refineKeysStep.add(lcsKeys);
+			}
+
+			if(c == 4){
+				int a = 100;
+			}
+
+//			do {
+//				Pair<Set<String>, Set<String>> pair = getNewRefineKeys(firstKey, str2Index,	prefixStringsReverse.getKey()[c], refineKeysStep);
+//				if(refineKeysStep.size() == pair.getKey().size() || pair.getValue().size() == 0)
+//					break;
+//				else
+//					refineKeysStep.addAll(pair.getValue());
+//			}
+//			while(true);
+
+			ArrayList<String> sortedStrings = new ArrayList<>();
+			sortedStrings.addAll(refineKeysStep);
+			Collections.sort(sortedStrings, stringLengthComparator);
+
+
+			for(int i = sortedStrings.size() - 1; i >= 0; i--) {
+				String[] keyList = sortedStrings.get(i).split(Lop.OPERAND_DELIMITOR);
+				ArrayList<String> tmpList = new ArrayList<>();
+
+				for(String sk : keyList)
+					if(sk.length() > 0)
+						tmpList.add(sk);
+				tmpList.add(firstKey);
+				boolean check = true;
+				Integer[][] positions = new Integer[prefixStrings[c].size()][tmpList.size()];
+
+				for(int j = 0; j < prefixStrings[c].size() && check; j++) {
+					Pair<Integer, Integer[]> checkPair = getIndexOfKeyPatternOnString2(prefixStrings[c].get(j), tmpList,
+						0);
+					check = checkPair.getKey() == prefixStrings[c].get(j).length();
+					if(check) {
+						positions[j] = checkPair.getValue();
+					}
+				}
+				if(check) {
+					// optimization
+//					ArrayList<Integer> refineList = new ArrayList<>();
+//					for(int r = 0; r < tmpList.size() - 1; r++) {
+//						boolean refineFlag = true;
+//						for(int psi = 0; psi < prefixStrings[c].size() && refineFlag; psi++) {
+//							String str = prefixStrings[c].get(psi);
+//							int lastIndex = refineList.size() == 0 ? 0 : refineList.get(refineList.size() - 1);
+//							int keyIndex = str.indexOf(tmpList.get(r + 1), lastIndex);
+//							refineFlag = keyIndex == positions[psi][r + 1];
+//
+//						}
+//						if(!refineFlag)
+//							refineList.add(r);
+//					}
+//					int a = 100;
+//					keys[c] = new ArrayList<>();
+//					for(Integer ri : refineList)
+//						keys[c].add(tmpList.get(ri));
+//					keys[c].add(firstKey);
+
+					//-----------
+					keys[c] = tmpList;
+					System.out.println(c);
+					break;
+				}
+			}
+
+			int a = 100;
+		}
+		return colKeyPattens;
+	}
+
+	private Pair<Integer, Integer[]> getIndexOfKeyPatternOnString2(String str, ArrayList<String> key, int beginPos) {
+		Integer[] positions = new Integer[key.size()];
+		int currPos = beginPos;
+		boolean flag = true;
+		for(int i = 0; i < key.size(); i++) {
+			int index = str.indexOf(key.get(i), currPos);
+			if(index != -1) {
+				positions[i] = index;
+				currPos = index + key.get(i).length();
+			}
+			else {
+				flag = false;
+				break;
+			}
+		}
+		if(flag)
+			return new Pair<>(currPos, positions);
+		else
+			return new Pair<>(-1, positions);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	private KeyTrie[] buildColsKeyPatternSingleRow0() {
+		Pair<ArrayList<String>[], ArrayList<Integer>[]> prefixStrings = extractAllPrefixStringsOfColsSingleLine(false, true);
+		ArrayList<String>[] suffixStrings = extractAllSuffixStringsOfColsSingleLine(false);
+		KeyTrie[] colKeyPattens = new KeyTrie[ncols];
+
+		int numThreads = 1;//OptimizerUtils.getParallelTextWriteParallelism();
 		try {
 			ExecutorService pool = CommonThreadPool.get(numThreads);
 			ArrayList<BuildColsKeyPatternSingleRowTask> tasks = new ArrayList<>();
@@ -1371,7 +1852,7 @@ public class FormatIdentifyer {
 				HashSet<Integer> colIndexes = new HashSet<>();
 				for(int j = 0; j < numThreads && j * numThreads * blklen + i * blklen < ncols; j++) {
 					int begin = j * numThreads * blklen + i * blklen;
-					int end = (int) Math.min(j * numThreads * blklen + (i + 1) * blklen, ncols);
+					int end = Math.min(j * numThreads * blklen + (i + 1) * blklen, ncols);
 					for(int k = begin; k < end; k++)
 						colIndexes.add(k);
 				}
@@ -1408,10 +1889,10 @@ public class FormatIdentifyer {
 		catch(Exception e) {
 			throw new RuntimeException("Failed parallel ColsKeyPatternSingleRow.", e);
 		}
-		return new Pair<>(colKeyPattens, conflicts);
+		return colKeyPattens;
 	}
 
-	public String getConflictToken(int[] cols, String token) {
+	public String getConflictToken(int[] cols) {
 		if(flagBuildConflict)
 			return null;
 
@@ -1426,14 +1907,15 @@ public class FormatIdentifyer {
 				continue;
 			int ib = beginColIndex;
 			int ie = lastColIndex;
-			for(; ib<lastColIndex-1;ib++)
-				if(mapCol[r][ib] !=-1)
+			for(; ib < lastColIndex - 1; ib++)
+				if(mapCol[r][ib] != -1)
 					break;
-			for(; ie>0;ie--)
-				if(mapCol[r][ie] !=-1)
+			for(; ie > 0; ie--)
+				if(mapCol[r][ie] != -1)
 					break;
-			if(ie !=-1 && ib!=-1 && ie != ib) {
-				String str = sampleRawIndexes.get(rowIndex).getRaw().substring(mapCol[r][ib] + mapLen[r][ib], mapCol[r][ie]);
+			if(ie != -1 && ib != -1 && ie != ib) {
+				String str = sampleRawIndexes.get(rowIndex).getRaw()
+					.substring(mapCol[r][ib] + mapLen[r][ib], mapCol[r][ie]);
 				suffixesBetweenBeginEnd.add(str);
 			}
 		}
@@ -1442,18 +1924,18 @@ public class FormatIdentifyer {
 		int maxTokenLength = 0;
 		String selectedString = "";
 		for(String suf : suffixesRefine) {
-			int index = suf.indexOf(Lop.OPERAND_DELIMITOR,1);
+			int index = suf.indexOf(Lop.OPERAND_DELIMITOR, 1);
 			if(index == -1)
 				index = suf.length();
 			String str;
-			if((str=suf.substring(1, index)).length()>0) {
+			if((str = suf.substring(1, index)).length() > 0) {
 				containList.add(str);
 				if(maxTokenLength == 0) {
 					maxTokenLength = str.length();
 					selectedString = str;
 				}
 				else {
-					if(maxTokenLength > str.length()){
+					if(maxTokenLength > str.length()) {
 						maxTokenLength = str.length();
 						selectedString = str;
 					}
@@ -1464,9 +1946,8 @@ public class FormatIdentifyer {
 			return null;
 
 		Map<Integer, ArrayList<String>> conflicts = new HashMap<>();
-		//ArrayList<String> conflicts = new ArrayList<>();
-		for(int tl=1; tl<maxTokenLength; tl++){
-			ArrayList<String> tokens = tokenizeStringList(selectedString, tl);
+		for(int tl = 1; tl < maxTokenLength; tl++) {
+			ArrayList<String> tokens = stringTokenize(selectedString, tl);
 			conflicts.put(tl, new ArrayList<>());
 			for(String t : tokens) {
 				boolean flag = false;
@@ -1480,8 +1961,8 @@ public class FormatIdentifyer {
 			}
 		}
 		String result = null;
-		for(int i=maxTokenLength-1; i>0 && result == null; i--){
-			for(String tc: conflicts.get(i)) {
+		for(int i = maxTokenLength - 1; i > 0 && result == null; i--) {
+			for(String tc : conflicts.get(i)) {
 				boolean flag = true;
 				for(String s : containList) {
 					flag = s.contains(tc);
@@ -1496,7 +1977,8 @@ public class FormatIdentifyer {
 		}
 		return result;
 	}
-	private ArrayList<String> tokenizeStringList(String str, int tokenLength) {
+
+	private ArrayList<String> stringTokenize(String str, int tokenLength) {
 		ArrayList<String> result = new ArrayList<>();
 		HashSet<String> tokenSet = new HashSet<>();
 		for(int i = 0; i <= str.length() - tokenLength; i++) {

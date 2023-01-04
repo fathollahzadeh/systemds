@@ -59,11 +59,10 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 		CodeGenTrie trie = new CodeGenTrie(properties, "dest.set", false, formatIdentifyer);
 		String javaCode = trie.getJavaCode();
 		src.append("String str=\"\"; \n");
-		src.append("String arrayStr=\"\";");
 		src.append("String remainStr = \"\"; \n");
 		src.append("int col = -1; \n");
 		src.append("long lnnz = 0; \n");
-		src.append("int index, indexConflict, indexArray, endPos, strLen; \n");
+		src.append("int index, indexConflict, endPos, strLen; \n");
 		src.append("HashSet<String>[] endWithValueString = _props.endWithValueStrings(); \n");
 		src.append("try { \n");
 		if(properties.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.SeqScatter){

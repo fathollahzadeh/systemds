@@ -32,7 +32,6 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 	private KeyTrie[] colKeyPatterns;
 	private KeyTrie valueKeyPattern;
 	private Types.ValueType[] schema;
-	private String[] conflicts;
 	private int ncols;
 	private boolean sparse;
 	private boolean parallel;
@@ -127,11 +126,4 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 		this.parallel = parallel;
 	}
 
-	public void setConflicts(String[] conflicts) {
-		this.conflicts = conflicts;
-	}
-
-	public String[] getConflicts() {
-		return conflicts;
-	}
 }

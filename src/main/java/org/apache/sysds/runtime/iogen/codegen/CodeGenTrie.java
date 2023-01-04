@@ -246,6 +246,8 @@ public class CodeGenTrie {
 					if(n.isEndOfCondition())
 						colIndexes.add(n.getColIndex());
 				}
+				if(keys.size() != colIndexes.size())
+					return null;
 				// are keys single?
 				HashSet<String> keysSet = new HashSet<>();
 				for(int i = 1; i < keys.size(); i++)
@@ -264,8 +266,6 @@ public class CodeGenTrie {
 				String cellString = getRandomName("cellString");
 				String tmpDest = destination.split("\\.")[0];
 
-				isKeySingle = false;
-				isIndexSequence = false;
 				int[] cols = new int[colIndexes.size()];
 				for(int i = 0; i < cols.length; i++)
 					cols[i] = Integer.parseInt(colIndexes.get(i));
@@ -279,7 +279,7 @@ public class CodeGenTrie {
 					mKey = mKey.replace(Lop.OPERAND_DELIMITOR, "\\\"");
 					mKey = "\"" + mKey.replace("\\\"", "\"").replace("\"", "\\\"") + "\"";
 
-					String conflict = formatIdentifyer.getConflictToken(cols, mKey);
+					String conflict = formatIdentifyer.getConflictToken(cols);
 
 					String colIndex = getRandomName("colIndex");
 					src.append("String[] parts; \n");
@@ -330,7 +330,7 @@ public class CodeGenTrie {
 					mKey = mKey.replace(Lop.OPERAND_DELIMITOR, "\\\"");
 					mKey = "\"" + mKey.replace("\\\"", "\"").replace("\"", "\\\"") + "\"";
 
-					String conflict = formatIdentifyer.getConflictToken(cols, mKey);
+					String conflict = formatIdentifyer.getConflictToken(cols);
 					src.append("String[] parts; \n");
 					if(conflict != null) {
 						src.append("indexConflict = ").append("str.indexOf(\"" + conflict + "\"," + currPos + "); \n");
@@ -365,20 +365,18 @@ public class CodeGenTrie {
 					String baseIndex = colIndexes.get(0);
 					String keysName = getRandomName("keys");
 					StringBuilder srcKeys = new StringBuilder("new String[]{");
-					String lasKey = "";
 					for(String k : keys) {
 						String mKey = k.replace("\\\"", Lop.OPERAND_DELIMITOR);
 						mKey = mKey.replace("\\", "\\\\");
 						mKey = mKey.replace(Lop.OPERAND_DELIMITOR, "\\\"");
 						mKey = "\"" + mKey.replace("\\\"", "\"").replace("\"", "\\\"") + "\"";
 						srcKeys.append(mKey).append(",");
-						lasKey = mKey;
 					}
 
 					srcKeys.deleteCharAt(srcKeys.length() - 1);
 					srcKeys.append("}");
 
-					String conflict = formatIdentifyer.getConflictToken(cols, lasKey);
+					String conflict = formatIdentifyer.getConflictToken(cols);
 
 					String colIndex = getRandomName("colIndex");
 					src.append("int ").append(colIndex).append("; \n");
@@ -416,7 +414,6 @@ public class CodeGenTrie {
 				// #Case 4: key = multi and index = irregular
 				if(!isKeySingle && !isIndexSequence) {
 					src.append("String ").append(cellString).append("; \n");
-					String lasKey = "";
 					String keysName = getRandomName("keys");
 					StringBuilder srcKeys = new StringBuilder("new String[]{");
 					for(String k : keys) {
@@ -425,7 +422,6 @@ public class CodeGenTrie {
 						mKey = mKey.replace(Lop.OPERAND_DELIMITOR, "\\\"");
 						mKey = "\"" + mKey.replace("\\\"", "\"").replace("\"", "\\\"") + "\"";
 						srcKeys.append(mKey).append(",");
-						lasKey = mKey;
 					}
 
 					srcKeys.deleteCharAt(srcKeys.length() - 1);
@@ -437,7 +433,7 @@ public class CodeGenTrie {
 					srcColIndexes.deleteCharAt(srcColIndexes.length() - 1);
 					srcColIndexes.append("}");
 
-					String conflict = formatIdentifyer.getConflictToken(cols, lasKey);
+					String conflict = formatIdentifyer.getConflictToken(cols);
 
 					String newStr = getRandomName("newStr");
 					src.append("String ").append(newStr).append("; \n");
