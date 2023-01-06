@@ -42,6 +42,7 @@ import org.apache.sysds.runtime.matrix.data.Pair;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.concurrent.Future;
 
 public abstract class MatrixGenerateReader extends MatrixReader {
 
@@ -71,12 +72,7 @@ public abstract class MatrixGenerateReader extends MatrixReader {
 
 		MatrixBlock ret;
 		if(rlen >= 0 && clen >= 0 && _props.getRowIndexStructure().getProperties() != RowIndexStructure.IndexProperties.SeqScatter) {
-//			if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.RowWiseExist ||
-//				_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.CellWiseExist ){
-//				//clen++;
-//				//rlen ++;
-//			}
-			ret = createOutputMatrixBlock(rlen, clen, (int) rlen, estnnz, !_props.isSparse(), _props.isSparse());
+			ret = createOutputMatrixBlock(rlen, clen, (int) rlen, estnnz, true, false);
 		}
 		else
 			ret = computeSizeAndCreateOutputMatrixBlock(informat,job, splits, estnnz);
@@ -119,6 +115,62 @@ public abstract class MatrixGenerateReader extends MatrixReader {
 						IOUtilFunctions.closeSilently(reader);
 					}
 				}
+			}
+			else if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.CellWiseExist ||
+				_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.RowWiseExist) {
+				int mxRow = 0;
+				int endPos;
+				for(InputSplit inputSplit : splits) {
+					RecordReader<LongWritable, Text> reader = informat.getRecordReader(inputSplit, job, Reporter.NULL);
+					LongWritable key = new LongWritable();
+					Text value = new Text();
+					try {
+						if(_props.getRowIndexStructure().getKeyPattern().size() == 1){
+							if(_props.getRowIndexStructure().getKeyPattern().get(0).length() == 0){
+								while(reader.next(key, value)) {
+									String strValue = value.toString();
+									endPos = TemplateUtil.getEndPos(strValue,strValue.length(),0,_props.getRowIndexStructure()
+										.endWithValueString());
+									int rowValue;
+									try {
+										rowValue = Integer.parseInt(strValue.substring(0, endPos));
+									}
+									catch(Exception ex){
+										rowValue = 0;
+									}
+									mxRow = Math.max(mxRow, rowValue);
+								}
+							}
+						}
+						else {
+							while(reader.next(key, value)) {
+								String strValue = value.toString();
+								int index = 0;
+								for(int i=0; i< _props.getRowIndexStructure().getKeyPattern().size() && index!=-1; i++){
+									index = strValue.indexOf(_props.getRowIndexStructure().getKeyPattern().get(i), index);
+								}
+								if(index!=-1){
+									endPos = TemplateUtil.getEndPos(strValue,strValue.length(),
+										_props.getRowIndexStructure().getKeyPattern().
+											get(_props.getRowIndexStructure().getKeyPattern().size() -1).length()+index,_props.getRowIndexStructure()
+										.endWithValueString());
+									int rowValue;
+									try {
+										rowValue = Integer.parseInt(strValue.substring(0, endPos));
+									}
+									catch(Exception ex){
+										rowValue = 0;
+									}
+									mxRow = Math.max(mxRow, rowValue);
+								}
+							}
+						}
+					}
+					finally {
+						IOUtilFunctions.closeSilently(reader);
+					}
+				}
+				row = mxRow;
 			}
 			else if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.SeqScatter) {
 				_offsets = new TemplateUtil.SplitOffsetInfos(splits.length);

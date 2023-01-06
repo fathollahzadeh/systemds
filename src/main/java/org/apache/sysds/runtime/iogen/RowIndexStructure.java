@@ -19,6 +19,7 @@
 
 package org.apache.sysds.runtime.iogen;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 
 public class RowIndexStructure {
@@ -41,19 +42,14 @@ public class RowIndexStructure {
 	}
 
 	private IndexProperties properties;
-	private KeyTrie keyPattern;
+	private HashSet<String> endWithValueString = null;
+	private ArrayList<String> keyPattern;
 	private int rowIndexBegin;
-
 	private String seqBeginString;
 	private String seqEndString;
 
 	public HashSet<String> endWithValueStrings() {
-		if(keyPattern!=null) {
-			HashSet<String> endWithValueString = keyPattern.getFirstSuffixKeyPatterns();
-			return endWithValueString;
-		}
-		else
-			return null;
+		return endWithValueString;
 	}
 
 	public IndexProperties getProperties() {
@@ -64,11 +60,11 @@ public class RowIndexStructure {
 		this.properties = properties;
 	}
 
-	public KeyTrie getKeyPattern() {
+	public ArrayList<String> getKeyPattern() {
 		return keyPattern;
 	}
 
-	public void setKeyPattern(KeyTrie keyPattern) {
+	public void setKeyPattern(ArrayList<String> keyPattern) {
 		this.keyPattern = keyPattern;
 	}
 
@@ -94,5 +90,13 @@ public class RowIndexStructure {
 
 	public void setSeqEndString(String seqEndString) {
 		this.seqEndString = seqEndString;
+	}
+
+	public HashSet<String> endWithValueString() {
+		return endWithValueString;
+	}
+
+	public void setEndWithValueString(HashSet<String> endWithValueString) {
+		this.endWithValueString = endWithValueString;
 	}
 }

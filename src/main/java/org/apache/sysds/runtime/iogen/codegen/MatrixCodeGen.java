@@ -41,6 +41,7 @@ public class MatrixCodeGen extends TemplateCodeGenBase {
 			"import java.io.IOException;\n" +
 			"import java.util.HashSet;\n" +
 			"import org.apache.sysds.runtime.io.IOUtilFunctions; \n" +
+			"import org.apache.sysds.runtime.util.UtilFunctions; \n" +
 			"import org.apache.commons.lang.mutable.MutableInt; \n" +
 			"import org.apache.sysds.runtime.iogen.template.TemplateUtil; \n" +
 			"public class "+className+" extends "+javaBaseClass+" {\n" +
@@ -65,13 +66,13 @@ public class MatrixCodeGen extends TemplateCodeGenBase {
 		src.append("int col = -1; \n");
 		src.append("int row = rowPos.intValue(); \n");
 		src.append("long lnnz = 0; \n");
-		src.append("int index, indexConflict, endPos, strLen; \n");
+		src.append("int index, endPos, strLen; \n");
 
 		boolean flag1 = false;
 		boolean flag2 = false;
 
-		if(properties.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.RowWiseExist || properties.getRowIndexStructure()
-			.getProperties() == RowIndexStructure.IndexProperties.CellWiseExist) {
+		if( properties.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.RowWiseExist ||
+			properties.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.CellWiseExist) {
 			src.append("HashSet<String> endWithValueStringRow = _props.getRowIndexStructure().endWithValueStrings(); \n");
 			flag1 = true;
 		}
@@ -82,7 +83,7 @@ public class MatrixCodeGen extends TemplateCodeGenBase {
 		}
 
 		if(flag1 && flag2)
-			src.append("HashSet<String> endWithValueStringVal = _props.getValueKeyPattern().getFirstSuffixKeyPatterns(); \n");
+			src.append("HashSet<String> endWithValueStringVal = _props.endWithValueStrings()[0]; \n");
 		else
 			src.append("HashSet<String>[] endWithValueString = _props.endWithValueStrings(); \n");
 

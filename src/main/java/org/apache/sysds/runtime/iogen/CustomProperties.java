@@ -22,6 +22,7 @@ package org.apache.sysds.runtime.iogen;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.runtime.io.FileFormatProperties;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashSet;
 
 public class CustomProperties extends FileFormatProperties implements Serializable {
@@ -29,9 +30,11 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 	private MappingProperties mappingProperties;
 	private RowIndexStructure rowIndexStructure;
 	private ColIndexStructure colIndexStructure;
-	private KeyTrie[] colKeyPatterns;
-	private KeyTrie valueKeyPattern;
+	private HashSet<String>[] endWithValueStrings;
+	private ArrayList<String>[] colKeyPatterns;
+	private ArrayList<String> valueKeyPattern;
 	private Types.ValueType[] schema;
+
 	private int ncols;
 	private boolean sparse;
 	private boolean parallel;
@@ -66,11 +69,11 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 		this.colIndexStructure = colIndexStructure;
 	}
 
-	public KeyTrie[] getColKeyPatterns() {
+	public ArrayList<String>[] getColKeyPatterns() {
 		return colKeyPatterns;
 	}
 
-	public void setColKeyPatterns(KeyTrie[] colKeyPatterns) {
+	public void setColKeyPatterns(ArrayList<String>[] colKeyPatterns) {
 		this.colKeyPatterns = colKeyPatterns;
 	}
 
@@ -83,22 +86,17 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 	}
 
 	public HashSet<String>[] endWithValueStrings() {
-		if(colKeyPatterns !=null) {
-			HashSet<String>[] endWithValueString = new HashSet[colKeyPatterns.length];
-			for(int i = 0; i < colKeyPatterns.length; i++)
-				if(colKeyPatterns[i] != null)
-					endWithValueString[i] = colKeyPatterns[i].getFirstSuffixKeyPatterns();
-			return endWithValueString;
-		}
+		if(endWithValueStrings !=null)
+			return this.endWithValueStrings;
 		else
 			return null;
 	}
 
-	public KeyTrie getValueKeyPattern() {
+	public ArrayList<String> getValueKeyPattern() {
 		return valueKeyPattern;
 	}
 
-	public void setValueKeyPattern(KeyTrie valueKeyPattern) {
+	public void setValueKeyPattern(ArrayList<String> valueKeyPattern) {
 		this.valueKeyPattern = valueKeyPattern;
 	}
 
@@ -126,4 +124,7 @@ public class CustomProperties extends FileFormatProperties implements Serializab
 		this.parallel = parallel;
 	}
 
+	public void setEndWithValueStrings(HashSet<String>[] endWithValueStrings) {
+		this.endWithValueStrings = endWithValueStrings;
+	}
 }

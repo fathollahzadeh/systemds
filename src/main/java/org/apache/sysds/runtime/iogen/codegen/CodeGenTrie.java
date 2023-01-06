@@ -24,7 +24,6 @@ import org.apache.sysds.lops.Lop;
 import org.apache.sysds.runtime.iogen.ColIndexStructure;
 import org.apache.sysds.runtime.iogen.CustomProperties;
 import org.apache.sysds.runtime.iogen.FormatIdentifyer;
-import org.apache.sysds.runtime.iogen.KeyTrie;
 import org.apache.sysds.runtime.iogen.MappingProperties;
 import org.apache.sysds.runtime.iogen.RowIndexStructure;
 
@@ -53,33 +52,25 @@ public class CodeGenTrie {
 
 		if(properties.getColKeyPatterns() != null) {
 			for(int c = 0; c < properties.getColKeyPatterns().length; c++) {
-				KeyTrie keyTrie = properties.getColKeyPatterns()[c];
 				Types.ValueType vt = Types.ValueType.FP64;
 				if(!this.isMatrix)
 					vt = properties.getSchema()[c];
-				if(keyTrie != null) {
-					for(ArrayList<String> keys : keyTrie.getReversePrefixKeyPatterns())
-						this.insert(ctnValue, c + "", vt, keys);
-				}
+				this.insert(ctnValue, c + "", vt, properties.getColKeyPatterns()[c]);
 			}
 		}
 		else if(properties.getValueKeyPattern() != null) {
 			// TODO: same pattern for all columns but the ValueTypes are different- fix it !
-			for(ArrayList<String> keys : properties.getValueKeyPattern().getPrefixKeyPatterns()) {
-				this.insert(ctnValue, "col", Types.ValueType.FP64, keys);
-			}
+			this.insert(ctnValue, "col", Types.ValueType.FP64, properties.getValueKeyPattern());
 		}
 
 		if(properties.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.RowWiseExist ||
 			properties.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.CellWiseExist) {
-			for(ArrayList<String> keys : properties.getRowIndexStructure().getKeyPattern().getPrefixKeyPatterns())
-				this.insert(ctnIndexes, "0", Types.ValueType.INT32, keys);
+			this.insert(ctnIndexes, "0", Types.ValueType.INT32, properties.getRowIndexStructure().getKeyPattern());
 		}
 
 		if(properties.getColIndexStructure().getProperties() == ColIndexStructure.IndexProperties.CellWiseExist &&
 			properties.getColIndexStructure().getKeyPattern() != null) {
-			for(ArrayList<String> keys : properties.getColIndexStructure().getKeyPattern().getPrefixKeyPatterns())
-				this.insert(ctnIndexes, "1", Types.ValueType.INT32, keys);
+			this.insert(ctnIndexes, "1", Types.ValueType.INT32, properties.getColIndexStructure().getKeyPattern());
 		}
 	}
 
@@ -274,37 +265,31 @@ public class CodeGenTrie {
 				if(isKeySingle && isIndexSequence) {
 					String baseIndex = colIndexes.get(0);
 					String key = keysSet.iterator().next();
-					String mKey = key.replace("\\\"", Lop.OPERAND_DELIMITOR);
-					mKey = mKey.replace("\\", "\\\\");
-					mKey = mKey.replace(Lop.OPERAND_DELIMITOR, "\\\"");
-					mKey = "\"" + mKey.replace("\\\"", "\"").replace("\"", "\\\"") + "\"";
-
-					String conflict = formatIdentifyer.getConflictToken(cols);
-
+					String mKey = refineKeyForSearch(key);
 					String colIndex = getRandomName("colIndex");
+					String conflict = null;
 					src.append("String[] parts; \n");
-					if(conflict != null) {
-						src.append("indexConflict = ").append("str.indexOf(\"" + conflict + "\"," + currPos + "); \n");
-						src.append("if (indexConflict != -1) \n");
-						src.append(
-							"parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + ", indexConflict), " + mKey +
-								"); \n");
-						src.append("else \n");
-
+					if(!isMatrix) {
+						conflict = formatIdentifyer.getConflictToken(cols);
+						if(conflict != null) {
+							src.append("indexConflict = ").append("str.indexOf(" + refineKeyForSearch(conflict) + "," + currPos + "); \n");
+							src.append("if (indexConflict != -1) \n");
+							src.append("parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + ", indexConflict), "+	mKey + "); \n");
+							src.append("else \n");
+						}
 					}
 					src.append("parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + "), " + mKey + "); \n");
-
 					src.append("int ").append(colIndex).append("; \n");
 					src.append("for (int i=0; i< Math.min(parts.length, " + colIndexes.size() + "); i++) {\n");
 					src.append(colIndex).append(" = i+").append(baseIndex).append("; \n");
+					src.append("endPos = TemplateUtil.getEndPos(parts[i], parts[i].length(), 0, endWithValueString[" + colIndex +"]); \n");
 					if(!isMatrix) {
 						src.append(destination).append(
 							"(row," + colIndex + ",UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +
-								colIndex + "], parts[i])); \n");
+								colIndex + "], parts[i].substring(0,endPos))); \n");
 					}
 					else
-						src.append(destination).append(
-							"(row," + colIndex + ",UtilFunctions.stringToObject(Types.ValueType.FP64, parts[i])); \n");
+						src.append(destination).append("(row," + colIndex + ",UtilFunctions.parseToDouble(parts[i].substring(0,endPos), null)); \n");
 
 					src.append("} \n");
 					if(conflict != null) {
@@ -320,38 +305,31 @@ public class CodeGenTrie {
 
 					srcColIndexes.deleteCharAt(srcColIndexes.length() - 1);
 					srcColIndexes.append("}");
-
 					String colIndexName = getRandomName("targetColIndex");
 					src.append("int[] ").append(colIndexName).append("=").append(srcColIndexes).append("; \n");
-
 					String key = keysSet.iterator().next();
-					String mKey = key.replace("\\\"", Lop.OPERAND_DELIMITOR);
-					mKey = mKey.replace("\\", "\\\\");
-					mKey = mKey.replace(Lop.OPERAND_DELIMITOR, "\\\"");
-					mKey = "\"" + mKey.replace("\\\"", "\"").replace("\"", "\\\"") + "\"";
-
-					String conflict = formatIdentifyer.getConflictToken(cols);
+					String mKey = refineKeyForSearch(key);
+					String conflict = null;
 					src.append("String[] parts; \n");
-					if(conflict != null) {
-						src.append("indexConflict = ").append("str.indexOf(\"" + conflict + "\"," + currPos + "); \n");
-						src.append("if (indexConflict != -1) \n");
-						src.append(
-							"parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + ", indexConflict), " + mKey +
-								"); \n");
-						src.append("else \n");
-
+					if(!isMatrix){
+						conflict = formatIdentifyer.getConflictToken(cols);
+						if(conflict != null) {
+							src.append("indexConflict = ").append("str.indexOf(" + refineKeyForSearch(conflict) + "," + currPos + "); \n");
+							src.append("if (indexConflict != -1) \n");
+							src.append("parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + ", indexConflict), " + mKey +"); \n");
+							src.append("else \n");
+						}
 					}
 					src.append("parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + "), " + mKey + "); \n");
-
 					src.append("for (int i=0; i< Math.min(parts.length, " + colIndexes.size() + "); i++) {\n");
 					if(!isMatrix) {
+						src.append("endPos = TemplateUtil.getEndPos(parts[i], parts[i].length(), 0, endWithValueString[" + colIndexName +"[i]]); \n");
 						src.append(destination).append(
 							"(row,"+colIndexName+"[i],UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" + colIndexName +
-								"[i]], parts[i])); \n");
+								"[i]], parts[i].substring(0, endPos))); \n");
 					}
 					else
-						src.append(destination).append("(row," + colIndexName +
-							"[i],UtilFunctions.stringToObject(Types.ValueType.FP64, parts[i])); \n");
+						src.append(destination).append("(row," + colIndexName + "[i],UtilFunctions.parseToDouble(parts[i].substring(0, endPos), null)); \n");
 
 					src.append("} \n");
 					if(conflict != null) {
@@ -365,62 +343,69 @@ public class CodeGenTrie {
 					String baseIndex = colIndexes.get(0);
 					String keysName = getRandomName("keys");
 					StringBuilder srcKeys = new StringBuilder("new String[]{");
-					for(String k : keys) {
-						String mKey = k.replace("\\\"", Lop.OPERAND_DELIMITOR);
-						mKey = mKey.replace("\\", "\\\\");
-						mKey = mKey.replace(Lop.OPERAND_DELIMITOR, "\\\"");
-						mKey = "\"" + mKey.replace("\\\"", "\"").replace("\"", "\\\"") + "\"";
+					for(int i=1; i<keys.size(); i++) {
+						String mKey = refineKeyForSearch(keys.get(i));
 						srcKeys.append(mKey).append(",");
 					}
 
 					srcKeys.deleteCharAt(srcKeys.length() - 1);
 					srcKeys.append("}");
-
-					String conflict = formatIdentifyer.getConflictToken(cols);
-
 					String colIndex = getRandomName("colIndex");
 					src.append("int ").append(colIndex).append("; \n");
-
 					String newStr = getRandomName("newStr");
 					src.append("String ").append(newStr).append("; \n");
-					if(conflict != null) {
-						src.append("indexConflict = ").append("str.indexOf(\"" + conflict + "\"," + currPos + "); \n");
-						src.append("if (indexConflict != -1) \n");
-						src.append(newStr).append("=").append("str.substring(" + currPos + ", indexConflict); \n");
-						src.append("else \n");
+					String conflict = null;
+					if(!isMatrix) {
+						conflict = formatIdentifyer.getConflictToken(cols);
+						if(conflict != null) {
+							src.append("indexConflict = ").append("str.indexOf(" + refineKeyForSearch(conflict) + "," + currPos + "); \n");
+							src.append("if (indexConflict != -1) \n");
+							src.append(newStr).append("=").append("str.substring(" + currPos + ", indexConflict); \n");
+							src.append("else \n");
+						}
 					}
 					src.append(newStr).append("=").append("str.substring(" + currPos + "); \n");
 					src.append(currPos).append("=0; \n");
 
 					src.append("String[] ").append(keysName).append("=").append(srcKeys).append("; \n");
-					src.append("for (int i=0; i< ").append(keys.size()).append(" && index!=-1;) { \n");
-					src.append(colIndex).append(" = i+").append(baseIndex).append("; \n");
-					src.append(
-						"endPos = TemplateUtil.getEndPos("+newStr +", "+newStr+".length(), " + currPos + ", endWithValueString[" + colIndex +
-							"]); \n");
-					src.append(cellString + "= "+newStr+".substring(" + currPos + ",endPos); \n");
+
+					// get the last "if" value and set it into frame/matrix
+					src.append("endPos = TemplateUtil.getEndPos("+newStr +","+newStr+".length(), " + currPos + ", endWithValueString[" + baseIndex +"]); \n");
+					src.append(cellString + "="+newStr+".substring(" + currPos + ",endPos); \n");
 					if(!isMatrix) {
-						src.append(destination).append(
-							"(row," + colIndex + " ,UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +
-								colIndex + "], " + cellString + ")); \n");
+						src.append(destination).append("(row," + baseIndex + " ,UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +	baseIndex + "], " + cellString + ")); \n");
 					}
 					else
-						src.append(destination).append(
-							"(row," + colIndex + ",UtilFunctions.stringToObject(Types.ValueType.FP64, " + cellString +")); \n");
-					src.append(currPos).append("=endPos+" + keysName + "[i].length(); \n");
-					src.append("index = "+newStr+".indexOf(" + keysName + "[i++],"+currPos+"); \n");
+						src.append(destination).append(	"(row," + baseIndex + ",UtilFunctions.parseToDouble(" + cellString +", null)); \n");
+
+					// get remain cell values
+					baseIndex = colIndexes.get(1);
+					src.append("for (int i=0; i< ").append(keys.size()-1).append(";i++) { \n");
+					src.append("index = "+newStr+".indexOf(" + keysName + "[i],endPos); \n");
+					src.append("if (index == -1) break; \n");
+					src.append(currPos).append("=index+" + keysName + "[i].length(); \n");
+					src.append(colIndex).append(" = i+").append(baseIndex).append("; \n");
+					src.append("endPos = TemplateUtil.getEndPos("+newStr +", "+newStr+".length(), " + currPos + ", endWithValueString[" + colIndex +"]); \n");
+					src.append(cellString + "= "+newStr+".substring(" + currPos + ",endPos); \n");
+					if(!isMatrix) {
+						src.append(destination).append("(row," + colIndex + " ,UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +	colIndex + "], " + cellString + ")); \n");
+					}
+					else
+						src.append(destination).append(	"(row," + colIndex + ",UtilFunctions.parseToDouble(" + cellString +", null)); \n");
+
 					src.append("} \n");
+					if(conflict != null) {
+						src.append("if (indexConflict !=-1) \n");
+						src.append("index = indexConflict; \n");
+					}
 				}
 				// #Case 4: key = multi and index = irregular
 				if(!isKeySingle && !isIndexSequence) {
 					src.append("String ").append(cellString).append("; \n");
 					String keysName = getRandomName("keys");
 					StringBuilder srcKeys = new StringBuilder("new String[]{");
-					for(String k : keys) {
-						String mKey = k.replace("\\\"", Lop.OPERAND_DELIMITOR);
-						mKey = mKey.replace("\\", "\\\\");
-						mKey = mKey.replace(Lop.OPERAND_DELIMITOR, "\\\"");
-						mKey = "\"" + mKey.replace("\\\"", "\"").replace("\"", "\\\"") + "\"";
+					for(int i=1; i<keys.size(); i++) {
+						String mKey = refineKeyForSearch(keys.get(i));
 						srcKeys.append(mKey).append(",");
 					}
 
@@ -428,20 +413,21 @@ public class CodeGenTrie {
 					srcKeys.append("}");
 
 					StringBuilder srcColIndexes = new StringBuilder("new int[]{");
-					for(String ci : colIndexes)
-						srcColIndexes.append(ci).append(",");
+					for(int i=1; i<colIndexes.size(); i++)
+						srcColIndexes.append(colIndexes.get(i)).append(",");
 					srcColIndexes.deleteCharAt(srcColIndexes.length() - 1);
 					srcColIndexes.append("}");
-
-					String conflict = formatIdentifyer.getConflictToken(cols);
-
 					String newStr = getRandomName("newStr");
 					src.append("String ").append(newStr).append("; \n");
-					if(conflict != null) {
-						src.append("indexConflict = ").append("str.indexOf(\"" + conflict + "\"," + currPos + "); \n");
-						src.append("if (indexConflict != -1) \n");
-						src.append(newStr).append("=").append("str.substring(" + currPos + ", indexConflict); \n");
-						src.append("else \n");
+					String conflict = null;
+					if(!isMatrix) {
+						conflict = formatIdentifyer.getConflictToken(cols);
+						if(conflict != null) {
+							src.append("indexConflict = ").append("str.indexOf(" + refineKeyForSearch(conflict) + "," + currPos + "); \n");
+							src.append("if (indexConflict != -1) \n");
+							src.append(newStr).append("=").append("str.substring(" + currPos + ", indexConflict); \n");
+							src.append("else \n");
+						}
 					}
 					src.append(newStr).append("=").append("str.substring(" + currPos + "); \n");
 					src.append(currPos).append("=0; \n");
@@ -452,22 +438,34 @@ public class CodeGenTrie {
 					srcKeys.deleteCharAt(srcKeys.length() - 1);
 					srcKeys.append("}");
 					src.append("String[] ").append(keysName).append("=").append(srcKeys).append("; \n");
-					src.append("for (int i=0; i< ").append(keys.size()).append(" && index!=-1;) { \n");
-					src.append("endPos = TemplateUtil.getEndPos("+newStr +", "+newStr+".length(), "+ currPos + ", endWithValueString[" +
-						colIndexName + "[i]]); \n");
+
+					// get the last "if" value and set it into frame/matrix
+					src.append("endPos = TemplateUtil.getEndPos("+newStr +", "+newStr+".length(), "+ currPos + ", endWithValueString["+colIndexes.get(0)+"]); \n");
 					src.append(cellString + "= "+newStr+".substring(" + currPos + ",endPos); \n");
 					if(!isMatrix) {
-						src.append(destination).append(
-							"(row," + colIndexName + "[i] ,UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +
-								colIndexName + "[i]], " + cellString + ")); \n");
+						src.append(destination).append("(row," + colIndexes.get(0) + ",UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" + colIndexes.get(0) + "], " + cellString + ")); \n");
 					}
 					else
-						src.append(destination).append(
-							"(row," + colIndexName + "[i] ,UtilFunctions.stringToObject(Types.ValueType.FP64, " +
-								cellString + ")); \n");
-					src.append(currPos).append("=endPos+" + keysName + "[i].length(); \n");
-					src.append("index = "+newStr+".indexOf(" + keysName + "[i++],endPos); \n");
+						src.append(destination).append("(row," + colIndexes.get(0) + ",UtilFunctions.parseToDouble(" + cellString + ", null)); \n");
+
+					// get remain cell values
+					src.append("for (int i=0; i< ").append(keys.size()-1).append(";i++) { \n");
+					src.append("index = "+newStr+".indexOf(" + keysName + "[i],endPos); \n");
+					src.append("if (index == -1) break; \n");
+					src.append(currPos).append("=index+" + keysName + "[i].length(); \n");
+					src.append("endPos = TemplateUtil.getEndPos("+newStr +", "+newStr+".length(), "+ currPos + ", endWithValueString[" + colIndexName + "[i]]); \n");
+					src.append(cellString + "= "+newStr+".substring(" + currPos + ",endPos); \n");
+					if(!isMatrix) {
+						src.append(destination).append("(row," + colIndexName + "[i] ,UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" + colIndexName + "[i]], " + cellString + ")); \n");
+					}
+					else
+						src.append(destination).append("(row," + colIndexName + "[i] ,UtilFunctions.parseToDouble(" + cellString + ", null)); \n");
 					src.append("} \n");
+
+					if(conflict != null) {
+						src.append("if (indexConflict !=-1) \n");
+						src.append("index = indexConflict; \n");
+					}
 				}
 				return cn;
 			}
@@ -475,6 +473,14 @@ public class CodeGenTrie {
 				return null;
 		}
 		return null;
+	}
+
+	private String refineKeyForSearch(String k){
+		String mKey = k.replace("\\\"", Lop.OPERAND_DELIMITOR);
+		mKey = mKey.replace("\\", "\\\\");
+		mKey = mKey.replace(Lop.OPERAND_DELIMITOR, "\\\"");
+		mKey = "\"" + mKey.replace("\\\"", "\"").replace("\"", "\\\"") + "\"";
+		return mKey;
 	}
 
 	public void setMatrix(boolean matrix) {

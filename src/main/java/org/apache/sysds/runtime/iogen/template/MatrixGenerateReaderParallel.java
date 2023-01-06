@@ -121,18 +121,20 @@ public abstract class MatrixGenerateReaderParallel extends MatrixReader {
 			}
 			else if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.CellWiseExist ||
 				_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.RowWiseExist) {
-				ArrayList<IOUtilFunctions.CountRowsTask> tasks = new ArrayList<>();
+				ArrayList<CountCellRowsTask> tasks = new ArrayList<>();
 				for(InputSplit split : splits)
-					tasks.add(new IOUtilFunctions.CountRowsTask(split, informat, job, false));
+					tasks.add(new CountCellRowsTask(split, informat, job));
 
 				// collect row counts for offset computation
 				// early error notify in case not all tasks successful
 				_offsets = new TemplateUtil.SplitOffsetInfos(tasks.size());
 				int i = 0;
-				for(Future<Long> rc : pool.invokeAll(tasks)) {
-					int lnrow = (int) rc.get().longValue(); // incl error handling
+				_rLen = 0;
+				for(Future<TemplateUtil.SplitInfo> rc : pool.invokeAll(tasks)) {
+					int lnrow = rc.get().getNrows(); // incl error handling
 					_offsets.setOffsetPerSplit(i, _rLen);
 					_offsets.setLenghtPerSplit(i, lnrow);
+					_rLen = Math.max(lnrow, lnrow);
 					i++;
 				}
 				pool.shutdown();
@@ -161,7 +163,6 @@ public abstract class MatrixGenerateReaderParallel extends MatrixReader {
 			throw new IOException("Thread pool Error " + e.getMessage(), e);
 		}
 
-		System.out.println("Row=");
 		// robustness for wrong dimensions which are already compiled into the plan
 		if(rlen != -1 && _rLen != rlen) {
 			String msg = "Read matrix dimensions differ from meta data: [" + _rLen + "x" + _cLen + "] vs. [" + rlen+ "x" + clen + "].";
@@ -325,6 +326,74 @@ public abstract class MatrixGenerateReaderParallel extends MatrixReader {
 				splitInfo.setRemainString(sb.toString());
 			}
 			splitInfo.setNrows(nrows);
+			return splitInfo;
+		}
+	}
+
+	private static class CountCellRowsTask implements Callable<TemplateUtil.SplitInfo> {
+		private final InputSplit _split;
+		private final TextInputFormat _inputFormat;
+		private final JobConf _jobConf;
+		public CountCellRowsTask(InputSplit split, TextInputFormat inputFormat, JobConf jobConf){
+			_split = split;
+			_inputFormat = inputFormat;
+			_jobConf = jobConf;
+		}
+
+		@Override
+		public TemplateUtil.SplitInfo call() throws Exception {
+			TemplateUtil.SplitInfo splitInfo = new TemplateUtil.SplitInfo();
+			int mxRow = 0;
+			int endPos;
+			RecordReader<LongWritable, Text> reader = _inputFormat.getRecordReader(_split, _jobConf, Reporter.NULL);
+			LongWritable key = new LongWritable();
+			Text value = new Text();
+			try {
+				if(_props.getRowIndexStructure().getKeyPattern().size() == 1){
+					if(_props.getRowIndexStructure().getKeyPattern().get(0).length() == 0){
+						while(reader.next(key, value)) {
+							String strValue = value.toString();
+							endPos = TemplateUtil.getEndPos(strValue,strValue.length(),0,_props.getRowIndexStructure()
+								.endWithValueString());
+							int rowValue;
+							try {
+								rowValue = Integer.parseInt(strValue.substring(0, endPos));
+							}
+							catch(Exception ex){
+								rowValue = 0;
+							}
+							mxRow = Math.max(mxRow, rowValue);
+						}
+					}
+				}
+				else {
+					while(reader.next(key, value)) {
+						String strValue = value.toString();
+						int index = 0;
+						for(int i=0; i< _props.getRowIndexStructure().getKeyPattern().size() && index!=-1; i++){
+							index = strValue.indexOf(_props.getRowIndexStructure().getKeyPattern().get(i), index);
+						}
+						if(index!=-1){
+							endPos = TemplateUtil.getEndPos(strValue,strValue.length(),
+								_props.getRowIndexStructure().getKeyPattern().
+									get(_props.getRowIndexStructure().getKeyPattern().size() -1).length()+index,_props.getRowIndexStructure()
+									.endWithValueString());
+							int rowValue;
+							try {
+								rowValue = Integer.parseInt(strValue.substring(0, endPos));
+							}
+							catch(Exception ex){
+								rowValue = 0;
+							}
+							mxRow = Math.max(mxRow, rowValue);
+						}
+					}
+				}
+			}
+			finally {
+				IOUtilFunctions.closeSilently(reader);
+			}
+			splitInfo.setNrows(mxRow);
 			return splitInfo;
 		}
 	}
