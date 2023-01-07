@@ -134,7 +134,7 @@ public abstract class MatrixGenerateReaderParallel extends MatrixReader {
 					int lnrow = rc.get().getNrows(); // incl error handling
 					_offsets.setOffsetPerSplit(i, _rLen);
 					_offsets.setLenghtPerSplit(i, lnrow);
-					_rLen = Math.max(lnrow, lnrow);
+					_rLen = Math.max(lnrow, _rLen);
 					i++;
 				}
 				pool.shutdown();
