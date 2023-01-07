@@ -186,39 +186,15 @@ public class FormatIdentifyer {
 					properties.setEndWithValueStrings(endWithValueStrings);
 				}
 
-
-				// build key pattern for row index
-				int numberOfSelectedCols = (int)Math.min(1000, ncols * 0.1);
-				int numberOfSelectedRows = (int)Math.min(20, nrows * 0.1);
-				numberOfSelectedRows = numberOfSelectedRows == 0 ? nrows - 1 : numberOfSelectedRows;
-				numberOfSelectedCols = numberOfSelectedCols == 0 ? ncols - 1 : numberOfSelectedCols;
 				int beginRowIndex = rowIndexStructure.getRowIndexBegin();
 				int beginColIndex = colIndexStructure.getColIndexBegin();
-				ArrayList<Integer> selectedRowIndex = new ArrayList<>();
-				ArrayList<Integer> selectedColIndex = new ArrayList<>();
-
-				for(int r = 1; r < nrows && selectedRowIndex.size() < numberOfSelectedRows; r++) {
-					for(int c = 0; c < ncols; c++)
-						if(mapRow[r][c] != -1) {
-							selectedRowIndex.add(r);
-							break;
-						}
-				}
-
-				for(int c = ncols - 1; c >= 0 && selectedColIndex.size() < numberOfSelectedCols; c--) {
-					for(int r = 1; r < nrows; r++)
-						if(mapRow[r][c] != -1) {
-							selectedColIndex.add(c);
-							break;
-						}
-				}
 				// build pattern for row-index
-				Pair<ArrayList<String>, HashSet<String>> rowIndexPattern = buildIndexKeyPattern(selectedRowIndex,selectedColIndex, beginRowIndex);
+				Pair<ArrayList<String>, HashSet<String>> rowIndexPattern = buildIndexKeyPattern(true, beginRowIndex);
 				rowIndexStructure.setKeyPattern(rowIndexPattern.getKey());
 				rowIndexStructure.setEndWithValueString(rowIndexPattern.getValue());
 
 				// build pattern for col-index
-				Pair<ArrayList<String>, HashSet<String>> colIndexPattern = buildIndexKeyPattern(new ArrayList<>(),selectedColIndex, beginColIndex);
+				Pair<ArrayList<String>, HashSet<String>> colIndexPattern = buildIndexKeyPattern(false, beginColIndex);
 				colIndexStructure.setKeyPattern(colIndexPattern.getKey());
 				colIndexStructure.setEndWithValueString(colIndexPattern.getValue());
 
@@ -696,7 +672,7 @@ public class FormatIdentifyer {
 		}
 		return null;
 	}
-	private Pair<ArrayList<String>, HashSet<String>> buildIndexKeyPattern(ArrayList<Integer> rowIndexes, ArrayList<Integer> colIndexes, int begin) {
+	private Pair<ArrayList<String>, HashSet<String>> buildIndexKeyPattern(boolean keyForRowIndexes, int begin) {
 		ArrayList<String>[] prefixesRemovedReverse = new ArrayList[1];
 		ArrayList<String>[] prefixesRemoved = new ArrayList[1];
 		ArrayList<String>[] prefixes = new ArrayList[1];
@@ -706,72 +682,81 @@ public class FormatIdentifyer {
 		HashSet<String>[] colSuffixes = new HashSet[1];
 		LongestCommonSubsequence lcs = new LongestCommonSubsequence();
 
-		for(int c :colIndexes) {
-			prefixesRemovedReverse[0] = new ArrayList<>();
-			prefixesRemoved[0] = new ArrayList<>();
-			prefixes[0] = new ArrayList<>();
-			suffixes[0]  = new ArrayList<>();
-		}
-		if(rowIndexes.size() > 0) {
-			for(int c : colIndexes) {
-				prefixesRemovedReverse[0].addAll(extractAllPrefixStringsOfAColSingleLine(rowIndexes, c, true, true).getKey());
-				prefixesRemoved[0].addAll(extractAllPrefixStringsOfAColSingleLine(rowIndexes, c, false, true).getKey());
-				prefixes[0].addAll(extractAllPrefixStringsOfAColSingleLine(rowIndexes, c, false, false).getKey());
+		prefixesRemovedReverse[0] = new ArrayList<>();
+		prefixesRemoved[0] = new ArrayList<>();
+		prefixes[0] = new ArrayList<>();
+		suffixes[0]  = new ArrayList<>();
+
+		Map<Integer,ArrayList<Integer>> selectedRowColForIndexes = new HashMap<>();
+		int maxSize = 0;
+		for(int r = 1; r < nrows && maxSize < 1000; r++) {
+			for(int c = 0; c < ncols && maxSize < 1000; c++) {
+				if(mapCol[r][c] != -1 && r != c ) {
+					selectedRowColForIndexes.computeIfAbsent(r, k -> new ArrayList<>());
+					selectedRowColForIndexes.get(r).add(c);
+					maxSize++;
+				}
 			}
-			Set<String> tmpSet = new HashSet<>();
-			for(String s: prefixesRemovedReverse[0])
-				for(Integer v: rowIndexes) {
-					String suf = addToPrefixes(tmpSet, s, v + begin, true);
-					if(suf!=null)
+		}
+		if(keyForRowIndexes) {
+			for(int r : selectedRowColForIndexes.keySet()) {
+				ArrayList<Integer> colSet = selectedRowColForIndexes.get(r);
+				ArrayList<String> tmpPrefixesRemovedReverse = extractAllPrefixStringsOfAColSingleLine(r, colSet, true, true).getKey();
+				ArrayList<String> tmpPrefixesRemoved = extractAllPrefixStringsOfAColSingleLine(r, colSet, false, true).getKey();
+				ArrayList<String> tmpPrefixes = extractAllPrefixStringsOfAColSingleLine(r, colSet, false, false).getKey();
+
+				Set<String> tmpSet = new HashSet<>();
+				for(String s : tmpPrefixesRemovedReverse) {
+					String suf = addToPrefixes(tmpSet, s, r+begin, true);
+					if(suf != null)
 						suffixes[0].add(suf);
 				}
-			prefixesRemovedReverse[0] = new ArrayList<>();
-			prefixesRemovedReverse[0].addAll(tmpSet);
+				prefixesRemovedReverse[0].addAll(tmpSet);
 
-			tmpSet = new HashSet<>();
-			for(String s: prefixesRemoved[0])
-				for(Integer v: rowIndexes)
-					addToPrefixes(tmpSet, s, v+begin, false);
-			prefixesRemoved[0] = new ArrayList<>();
-			prefixesRemoved[0].addAll(tmpSet);
+				tmpSet = new HashSet<>();
+				for(String s : tmpPrefixesRemoved)
+					addToPrefixes(tmpSet, s, r+begin, false);
+				prefixesRemoved[0].addAll(tmpSet);
 
-			tmpSet = new HashSet<>();
-			for(String s: prefixes[0])
-				for(Integer v: rowIndexes)
-					addToPrefixes(tmpSet, s, v+begin, false);
-			prefixes[0] = new ArrayList<>();
-			prefixes[0].addAll(tmpSet);
+				tmpSet = new HashSet<>();
+				for(String s : tmpPrefixes)
+					addToPrefixes(tmpSet, s, r+begin, false);
+				prefixes[0].addAll(tmpSet);
+			}
 		}
 		else {
-			for(int c : colIndexes) {
-				prefixesRemovedReverse[0].addAll(extractAllPrefixStringsOfAColSingleLine( c, true, true).getKey());
-				prefixesRemoved[0].addAll(extractAllPrefixStringsOfAColSingleLine( c, false, true).getKey());
-				prefixes[0].addAll(extractAllPrefixStringsOfAColSingleLine( c, false, false).getKey());
-			}
-			Set<String> tmpSet = new HashSet<>();
-			for(String s: prefixesRemovedReverse[0])
-				for(Integer v: colIndexes) {
-					String suf = addToPrefixes(tmpSet, s, v + begin, true);
-					if(suf!=null)
-						suffixes[0].add(suf);
+			for(int r : selectedRowColForIndexes.keySet()) {
+				ArrayList<Integer> colSet = selectedRowColForIndexes.get(r);
+				ArrayList<String> tmpPrefixesRemovedReverse = extractAllPrefixStringsOfAColSingleLine(r, colSet, true, true).getKey();
+				ArrayList<String> tmpPrefixesRemoved = extractAllPrefixStringsOfAColSingleLine(r, colSet, false, true).getKey();
+				ArrayList<String> tmpPrefixes = extractAllPrefixStringsOfAColSingleLine(r, colSet, false, false).getKey();
+
+				Set<String> tmpSet = new HashSet<>();
+				for(String s : tmpPrefixesRemovedReverse) {
+					for(int c: colSet) {
+						String suf = addToPrefixes(tmpSet, s, c+begin, true);
+						if(suf != null)
+							suffixes[0].add(suf);
+					}
 				}
-			prefixesRemovedReverse[0] = new ArrayList<>();
-			prefixesRemovedReverse[0].addAll(tmpSet);
+				prefixesRemovedReverse[0].addAll(tmpSet);
 
-			tmpSet = new HashSet<>();
-			for(String s: prefixesRemoved[0])
-				for(Integer v: colIndexes)
-					addToPrefixes(tmpSet, s, v+begin, false);
-			prefixesRemoved[0] = new ArrayList<>();
-			prefixesRemoved[0].addAll(tmpSet);
+				tmpSet = new HashSet<>();
+				for(String s : tmpPrefixesRemoved)
+					for(int c: colSet) {
+						addToPrefixes(tmpSet, s, c+begin, false);
+					}
+				prefixesRemoved[0].addAll(tmpSet);
 
-			tmpSet = new HashSet<>();
-			for(String s: prefixes[0])
-				for(Integer v: colIndexes)
-					addToPrefixes(tmpSet, s, v+begin, false);
-			prefixes[0] = new ArrayList<>();
-			prefixes[0].addAll(tmpSet);
+				tmpSet = new HashSet<>();
+				for(String s : tmpPrefixes)
+					for(int c: colSet) {
+						addToPrefixes(tmpSet, s, c+begin, false);
+					}
+				prefixes[0].addAll(tmpSet);
+			}
 		}
+
 		HashSet<Integer> colIndexe = new HashSet<>();
 		colIndexe.add(0);
 
@@ -808,19 +793,19 @@ public class FormatIdentifyer {
 		}
 		return new Pair<>(prefixStrings, rowIndexes);
 	}
-	public Pair<ArrayList<String>, ArrayList<Integer>> extractAllPrefixStringsOfAColSingleLine(ArrayList<Integer> selectedRowIndexes,
-		int colIndex, boolean reverse, boolean removesSelected) {
+	public Pair<ArrayList<String>, ArrayList<Integer>> extractAllPrefixStringsOfAColSingleLine(int r,
+		ArrayList<Integer> colIndexes, boolean reverse, boolean removesSelected) {
 		ArrayList<String> prefixStrings = new ArrayList();
 		ArrayList<Integer> rowIndexes = new ArrayList();
-		for(int r : selectedRowIndexes) {
-			int rowIndex = mapRow[r][colIndex];
+		for(int c : colIndexes) {
+			int rowIndex = mapRow[r][c];
 			if(rowIndex != -1) {
 				rowIndexes.add(rowIndex);
 				String str;
 				if(removesSelected)
-					str = sampleRawIndexes.get(rowIndex).getRemainedTexts(0, mapCol[r][colIndex]);
+					str = sampleRawIndexes.get(rowIndex).getRemainedTexts(0, mapCol[r][c]);
 				else
-					str = sampleRawIndexes.get(rowIndex).getRaw().substring(0, mapCol[r][colIndex]);
+					str = sampleRawIndexes.get(rowIndex).getRaw().substring(0, mapCol[r][c]);
 				if(reverse)
 					prefixStrings.add(new StringBuilder(str).reverse().toString());
 				else
@@ -1399,16 +1384,6 @@ public class FormatIdentifyer {
 				}
 				colSuffixes[c] = colSuffixe;
 			}
-//					for(int c:colIndexes) {
-//						System.out.print(c+"  >> ");
-//						for(String k: keys[c])
-//							System.out.print("["+k+"] ,");
-//						System.out.print(" ||| ");
-//						for(String k: colSuffixes[c])
-//							System.out.print("["+k+"] ,");
-//						System.out.println();
-//						System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++");
-//					}
 			return new Pair<>(keys, colSuffixes);
 		}
 	}
@@ -1417,6 +1392,10 @@ public class FormatIdentifyer {
 		int beginColIndex = cols[0];
 		ArrayList<String> suffixesBetweenBeginEnd = new ArrayList<>();
 		ArrayList<String> suffixesRefine = extractAllSuffixStringsOfColsSingleLine(lastColIndex, true);
+		Set<String> setSuffixesRefine = new HashSet<>();
+		setSuffixesRefine.addAll(suffixesRefine);
+		if(setSuffixesRefine.size() == 1 && setSuffixesRefine.iterator().next().length() == 0)
+			return null;
 
 		for(int r = 0; r < nrows; r++) {
 			int rowIndex = mapRow[r][beginColIndex];
