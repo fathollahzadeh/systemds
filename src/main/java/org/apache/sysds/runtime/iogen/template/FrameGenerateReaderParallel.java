@@ -160,8 +160,6 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 					splitIndex++;
 				}
 
-				System.out.println(_props.getRowIndexStructure().getSeqBeginString()+"  "+_props.getRowIndexStructure().getSeqEndString());
-
 				// collect row counts for offset computation
 				int i = 0;
 				for(Future<Integer> rc : pool.invokeAll(tasks)) {

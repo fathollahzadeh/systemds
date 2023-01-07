@@ -53,6 +53,8 @@ public class FormatIdentifyer {
 	private ReaderMapping mappingValues;
 	private CustomProperties properties;
 
+	private BitSet staticColIndexes;
+
 	public FormatIdentifyer(String raw, MatrixBlock matrix) throws Exception {
 		this.mappingValues = new ReaderMapping(raw, matrix);
 		this.runIdentification();
@@ -109,6 +111,7 @@ public class FormatIdentifyer {
 		ncols = mappingValues.getNcols();
 		nlines = mappingValues.getNlines();
 		actualValueCount = mappingValues.getActualValueCount();
+		staticColIndexes = new BitSet(ncols);
 
 		// collect custom properties
 		// 1. properties of row-index
@@ -1340,12 +1343,20 @@ public class FormatIdentifyer {
 			// CleanUP keys: reduce key list if it possible
 			for(int c :colIndexes) {
 				keys[c] = cleanUPKey(keys[c], prefixes[c]);
-				boolean flagOptimal = false;
-				for(int i=0; i< keys[c].size() && !flagOptimal; i++)
-					flagOptimal = keys[c].get(i).contains(" ");
-				if(flagOptimal) {
-					keys[c] = optimalKeyPattern(keys[c], prefixes[c]);
+//				boolean flagOptimal = false;
+//				for(int i=0; i< keys[c].size() && !flagOptimal; i++)
+//					flagOptimal = keys[c].get(i).contains(" ");
+//				if(flagOptimal) {
+//					keys[c] = optimalKeyPattern(keys[c], prefixes[c]);
+//				}
+
+				// set static col flag
+				Boolean flagFixCol = true;
+				for(int r = 0; r < nrows && flagFixCol && prefixes[c].size() !=nrows; r++){
+					String rawStr =  sampleRawIndexes.get(r).getRaw();
+					flagFixCol = getIndexOfKeyPatternOnString(rawStr, keys[c], 0) !=-1;
 				}
+				staticColIndexes.set(c, flagFixCol);
 
 				// Build suffixes
 				Set<String> setSuffix = new HashSet<>();
@@ -1388,6 +1399,13 @@ public class FormatIdentifyer {
 		}
 	}
 	public String getConflictToken(int[] cols) {
+		boolean flagStatic = true;
+		for(int c=0; c<cols.length && flagStatic ; c++){
+			flagStatic = staticColIndexes.get(cols[c]);
+		}
+		if(flagStatic)
+			return null;
+
 		int lastColIndex = cols[cols.length - 1];
 		int beginColIndex = cols[0];
 		ArrayList<String> suffixesBetweenBeginEnd = new ArrayList<>();
