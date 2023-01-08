@@ -97,6 +97,7 @@ public abstract class MatrixGenerateReaderParallel extends MatrixReader {
 		FileInputFormat.addInputPath(job, path);
 		TextInputFormat informat = new TextInputFormat();
 		informat.configure(job);
+		long estnnz2 = -1;
 
 		// count rows in parallel per split
 		try {
@@ -118,26 +119,38 @@ public abstract class MatrixGenerateReaderParallel extends MatrixReader {
 					i++;
 				}
 				pool.shutdown();
+				estnnz2 = (estnnz < 0) ? (long) _rLen * _cLen : estnnz;
 			}
 			else if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.CellWiseExist ||
 				_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.RowWiseExist) {
-				ArrayList<CountCellRowsTask> tasks = new ArrayList<>();
-				for(InputSplit split : splits)
-					tasks.add(new CountCellRowsTask(split, informat, job));
-
-				// collect row counts for offset computation
-				// early error notify in case not all tasks successful
-				_offsets = new TemplateUtil.SplitOffsetInfos(tasks.size());
-				int i = 0;
-				_rLen = 0;
-				for(Future<TemplateUtil.SplitInfo> rc : pool.invokeAll(tasks)) {
-					int lnrow = rc.get().getNrows(); // incl error handling
-					_offsets.setOffsetPerSplit(i, _rLen);
-					_offsets.setLenghtPerSplit(i, lnrow);
-					_rLen = Math.max(lnrow, _rLen);
-					i++;
+				if(rlen >= 0){
+					_rLen = (int) rlen;
+					_offsets = new TemplateUtil.SplitOffsetInfos(splits.length);
+					for(int i=0; i< splits.length; i++){
+						_offsets.setOffsetPerSplit(i, _rLen);
+						_offsets.setLenghtPerSplit(i, _rLen);
+					}
 				}
-				pool.shutdown();
+				else {
+					ArrayList<CountCellRowsTask> tasks = new ArrayList<>();
+					for(InputSplit split : splits)
+						tasks.add(new CountCellRowsTask(split, informat, job));
+
+					// collect row counts for offset computation
+					// early error notify in case not all tasks successful
+					_offsets = new TemplateUtil.SplitOffsetInfos(tasks.size());
+					int i = 0;
+					_rLen = 0;
+					for(Future<TemplateUtil.SplitInfo> rc : pool.invokeAll(tasks)) {
+						int lnrow = rc.get().getNrows(); // incl error handling
+						_offsets.setOffsetPerSplit(i, _rLen);
+						_offsets.setLenghtPerSplit(i, lnrow);
+						_rLen = Math.max(lnrow, _rLen);
+						i++;
+					}
+					pool.shutdown();
+				}
+				estnnz2 = -1;
 			}
 			else if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.SeqScatter) {
 				ArrayList<CountSeqScatteredRowsTask> tasks = new ArrayList<>();
@@ -157,6 +170,7 @@ public abstract class MatrixGenerateReaderParallel extends MatrixReader {
 					i++;
 				}
 				pool.shutdown();
+				estnnz2 = (estnnz < 0) ? (long) _rLen * _cLen : estnnz;
 			}
 		}
 		catch(Exception e) {
@@ -177,8 +191,7 @@ public abstract class MatrixGenerateReaderParallel extends MatrixReader {
 				_cLen = (int) clen;
 			}
 		}
-		long estnnz2 = (estnnz < 0) ? (long) _rLen * _cLen : estnnz;
-		return createOutputMatrixBlock(_rLen, _cLen, blen, estnnz2, true, false);
+		return createOutputMatrixBlock(_rLen, _cLen, _rLen, estnnz2, true, false);
 	}
 
 	@Override

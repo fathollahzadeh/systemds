@@ -71,10 +71,11 @@ public abstract class MatrixGenerateReader extends MatrixReader {
 		splits = IOUtilFunctions.sortInputSplits(splits);
 
 		MatrixBlock ret;
-		if(rlen >= 0 && clen >= 0 && _props.getRowIndexStructure().getProperties() != RowIndexStructure.IndexProperties.SeqScatter) {
+		if(rlen >= 0 && (_props.getRowIndexStructure().getProperties() != RowIndexStructure.IndexProperties.SeqScatter ||
+			(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.CellWiseExist ||
+				_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.RowWiseExist))) {
 			ret = createOutputMatrixBlock(rlen, clen, (int) rlen, estnnz, true, false);
-		}
-		else
+		}else
 			ret = computeSizeAndCreateOutputMatrixBlock(informat,job, splits, estnnz);
 
 		//core read
@@ -250,7 +251,7 @@ public abstract class MatrixGenerateReader extends MatrixReader {
 		catch(Exception e) {
 			throw new IOException("Thread pool Error " + e.getMessage(), e);
 		}
-		MatrixBlock ret = createOutputMatrixBlock(row, _props.getNcols(), (int) row, estnnz, !_props.isSparse(), _props.isSparse());
+		MatrixBlock ret = createOutputMatrixBlock(row, _props.getNcols(), (int) row, estnnz, true, false);
 		return ret;
 	}
 
