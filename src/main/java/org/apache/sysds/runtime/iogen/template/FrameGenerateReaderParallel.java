@@ -142,7 +142,6 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 				pool.shutdown();
 			}
 			else if(_props.getRowIndexStructure().getProperties() == RowIndexStructure.IndexProperties.SeqScatter) {
-
 				_offsets = new TemplateUtil.SplitOffsetInfos(splits.length);
 				for(int i = 0; i < splits.length; i++) {
 					TemplateUtil.SplitInfo splitInfo = new TemplateUtil.SplitInfo();
@@ -297,17 +296,20 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 				for(int i = 1; i < beginIndexes.size(); i++)
 					endIndexes.add(beginIndexes.get(i));
 			}
-
 			int i = 0;
 			int j = 0;
-			if(beginIndexes.get(0).getKey() > endIndexes.get(0).getKey()) {
-				nrows++;
-				for(; j < endIndexes.size() && beginIndexes.get(0).getKey() > endIndexes.get(j).getKey(); j++);
-			}
-			else if(_curOffset !=0 && _beginToken.equals(_endToken)){
-				splitInfo.addIndexAndPosition(0l, endIndexes.get(0).getKey(),
-					0, endIndexes.get(0).getValue() + tokenLength);
-				nrows++;
+			if(endIndexes.size() > 0) {
+				if(beginIndexes.get(0).getKey() > endIndexes.get(0).getKey()) {
+					nrows++;
+					for(; j < endIndexes.size() && beginIndexes.get(0).getKey() > endIndexes.get(j).getKey(); j++)
+						;
+				}
+				else if(_curOffset != 0 && _beginToken.equals(_endToken)) {
+//					splitInfo.addIndexAndPosition(0l, endIndexes.get(0).getKey(), 0,
+//						endIndexes.get(0).getValue() + tokenLength);
+					//System.out.println(_curOffset+" || ["+0+","+endIndexes.get(0).getKey()+"]");
+					nrows++;
+				}
 			}
 
 			while(i < beginIndexes.size() && j < endIndexes.size()) {
@@ -329,6 +331,11 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 				nrows++;
 			}
 			if(_nextOffset != null) {
+				if(beginIndexes.size() == 1){
+					splitInfo.addIndexAndPosition( beginIndexes.get(0).getKey(), beginIndexes.get(0).getKey(),
+						0, beginIndexes.get(0).getValue());
+					nrows++;
+				}
 				RecordReader<LongWritable, Text> reader = _inputFormat.getRecordReader(_split, _job, Reporter.NULL);
 				LongWritable key = new LongWritable();
 				Text value = new Text();
@@ -350,6 +357,7 @@ public abstract class FrameGenerateReaderParallel extends FrameReader {
 					endIndexes.get(endIndexes.size()-1).getValue(), 0);
 				nrows++;
 			}
+
 			splitInfo.setNrows(nrows);
 			_offsets.getSeqOffsetPerSplit(_curOffset).setNrows(nrows);
 			_offsets.setOffsetPerSplit(_curOffset, nrows);

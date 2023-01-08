@@ -116,7 +116,6 @@ public class CodeGenTrie {
 				rowIndex == RowIndexStructure.IndexProperties.SeqScatter)) {
 			getJavaCode(ctnValue, src, "0");
 			src.append("row++; \n");
-			src.append("System.out.println(\">> \"+row);");
 		}
 		// example: MM
 		else if(rowIndex == RowIndexStructure.IndexProperties.CellWiseExist &&
