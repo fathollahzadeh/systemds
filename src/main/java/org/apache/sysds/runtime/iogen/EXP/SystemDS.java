@@ -113,6 +113,7 @@ public class SystemDS {
 						break;
 					case "mm":
 						matrixReader = new ReaderTextCellParallel(Types.FileFormat.MM);
+						rows = -1;
 						break;
 				}
 			}
@@ -177,6 +178,7 @@ public class SystemDS {
 						FrameReaderXMLJackson jacksonXML = new FrameReaderXMLJackson();
 						frameBlock = jacksonXML.readFrameFromHDFS(dataFileName, schema, xmlSchemaMap, beginToken,
 							endToken, -1, cols);
+						break;
 
 					case "hl7":
 						schema = util.getSchema(schemaFileName);
@@ -186,6 +188,7 @@ public class SystemDS {
 
 						FrameReaderTextHL7 hl7 = new FrameReaderTextHL7(properties);
 						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, cols);
+						break;
 				}
 			}
 			else {
@@ -243,6 +246,7 @@ public class SystemDS {
 						FrameReaderXMLJacksonParallel jacksonXML = new FrameReaderXMLJacksonParallel();
 						frameBlock = jacksonXML.readFrameFromHDFS(dataFileName, schema, xmlSchemaMap, beginToken,
 							endToken, -1, cols);
+						break;
 
 					case "hl7":
 						schema = util.getSchema(schemaFileName);
@@ -251,6 +255,7 @@ public class SystemDS {
 						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(parallelPair.getKey(), parallelPair.getValue());
 						FrameReaderTextHL7Parallel hl7 = new FrameReaderTextHL7Parallel(properties);
 						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, cols);
+						break;
 
 				}
 			}
