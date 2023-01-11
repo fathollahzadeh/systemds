@@ -85,13 +85,11 @@ public class SystemDS {
 					case "csv":
 						FileFormatPropertiesCSV propertiesCSV = new FileFormatPropertiesCSV(header, sep, false);
 						matrixReader = new ReaderTextCSV(propertiesCSV);
-						matrixReader.readMatrixFromHDFS(dataFileName, rows, cols, -1, -1);
 						break;
 					case "libsvm":
 						FileFormatPropertiesLIBSVM propertiesLIBSVM = new FileFormatPropertiesLIBSVM(sep, indSep,
 							false);
 						matrixReader = new ReaderTextLIBSVM(propertiesLIBSVM);
-						matrixReader.readMatrixFromHDFS(dataFileName, rows, cols, -1, -1);
 						break;
 					case "mm":
 						matrixReader = new ReaderTextCell(Types.FileFormat.MM, true);
@@ -103,17 +101,14 @@ public class SystemDS {
 					case "csv":
 						FileFormatPropertiesCSV propertiesCSV = new FileFormatPropertiesCSV(header, sep, false);
 						matrixReader = new ReaderTextCSVParallel(propertiesCSV);
-						matrixReader.readMatrixFromHDFS(dataFileName, rows, cols, -1, -1);
 						break;
 					case "libsvm":
 						FileFormatPropertiesLIBSVM propertiesLIBSVM = new FileFormatPropertiesLIBSVM(sep, indSep,
 							false);
 						matrixReader = new ReaderTextLIBSVMParallel(propertiesLIBSVM);
-						matrixReader.readMatrixFromHDFS(dataFileName, rows, cols, -1, -1);
 						break;
 					case "mm":
 						matrixReader = new ReaderTextCellParallel(Types.FileFormat.MM);
-						rows = -1;
 						break;
 				}
 			}
