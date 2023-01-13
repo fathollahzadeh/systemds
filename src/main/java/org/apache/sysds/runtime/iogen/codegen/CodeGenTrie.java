@@ -205,7 +205,6 @@ public class CodeGenTrie {
 		}
 		else if(!tmpNode.isEndOfCondition())
 			getJavaCodeIndexOf(tmpNode, src, currPos);
-
 	}
 
 	private CodeGenTrieNode getJavaCodeRegular(CodeGenTrieNode node, StringBuilder src, String currPos) {
@@ -232,13 +231,25 @@ public class CodeGenTrie {
 				// extract keys and related indexes
 				ArrayList<String> keys = new ArrayList<>();
 				ArrayList<String> colIndexes = new ArrayList<>();
+				ArrayList<Integer> colIndexesExtra = new ArrayList<>();
+				int tmpIndex = 0;
 				for(CodeGenTrieNode n : nodes) {
 					keys.add(n.getKey());
 					if(n.isEndOfCondition())
 						colIndexes.add(n.getColIndex());
+					else
+						colIndexesExtra.add(tmpIndex);
+					tmpIndex++;
 				}
-				if(keys.size() != colIndexes.size())
-					return null;
+				if(keys.size() != colIndexes.size()) {
+					if(keys.size() == colIndexes.size()+1 && colIndexesExtra.get(0) == 0){
+						src.append("//+++++++++++++++++++++++++++++++++++ \n");
+						//getJavaCodeIndexOf(cn, src, currPos);
+						//return cn;
+					}
+					else
+						return null;
+				}
 				// are keys single?
 				HashSet<String> keysSet = new HashSet<>();
 				for(int i = 1; i < keys.size(); i++)
@@ -268,9 +279,12 @@ public class CodeGenTrie {
 					String mKey = refineKeyForSearch(key);
 					String colIndex = getRandomName("colIndex");
 					String conflict = null;
+					boolean isDelimAndSuffixesSame = false;
 					src.append("String[] parts; \n");
 					if(!isMatrix) {
 						conflict = formatIdentifyer.getConflictToken(cols);
+						isDelimAndSuffixesSame = formatIdentifyer.isDelimAndSuffixesSame(key, cols);
+						//isDelimAndSuffixesSame = false;
 						if(conflict != null) {
 							src.append("indexConflict = ").append("str.indexOf(" + refineKeyForSearch(conflict) + "," + currPos + "); \n");
 							src.append("if (indexConflict != -1) \n");
@@ -282,15 +296,21 @@ public class CodeGenTrie {
 					src.append("int ").append(colIndex).append("; \n");
 					src.append("for (int i=0; i< Math.min(parts.length, " + colIndexes.size() + "); i++) {\n");
 					src.append(colIndex).append(" = i+").append(baseIndex).append("; \n");
-					src.append("endPos = TemplateUtil.getEndPos(parts[i], parts[i].length(), 0, endWithValueString[" + colIndex +"]); \n");
-					if(!isMatrix) {
-						src.append(destination).append(
-							"(row," + colIndex + ",UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +
-								colIndex + "], parts[i].substring(0,endPos))); \n");
+					if(isDelimAndSuffixesSame){
+						if(!isMatrix) {
+							src.append(destination).append("(row," + colIndex + ",UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +colIndex + "], parts[i])); \n");
+						}
+						else
+							src.append(destination).append("(row," + colIndex + ",UtilFunctions.parseToDouble(parts[i], null)); \n");
 					}
-					else
-						src.append(destination).append("(row," + colIndex + ",UtilFunctions.parseToDouble(parts[i].substring(0,endPos), null)); \n");
-
+					else {
+						src.append("endPos = TemplateUtil.getEndPos(parts[i], parts[i].length(), 0, endWithValueString[" + colIndex +"]); \n");
+						if(!isMatrix) {
+							src.append(destination).append("(row," + colIndex + ",UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +colIndex + "], parts[i].substring(0,endPos))); \n");
+						}
+						else
+							src.append(destination).append("(row," + colIndex + ",UtilFunctions.parseToDouble(parts[i].substring(0,endPos), null)); \n");
+					}
 					src.append("} \n");
 					if(conflict != null) {
 						src.append("if (indexConflict !=-1) \n");

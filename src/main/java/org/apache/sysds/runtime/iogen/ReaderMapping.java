@@ -20,35 +20,39 @@
 package org.apache.sysds.runtime.iogen;
 
 import org.apache.sysds.common.Types;
+import org.apache.sysds.hops.OptimizerUtils;
 import org.apache.sysds.runtime.io.IOUtilFunctions;
 import org.apache.sysds.runtime.frame.data.FrameBlock;
 import org.apache.sysds.runtime.matrix.data.MatrixBlock;
 import org.apache.sysds.runtime.matrix.data.Pair;
+import org.apache.sysds.runtime.util.CommonThreadPool;
+import org.apache.sysds.runtime.util.UtilFunctions;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 public class ReaderMapping {
-
 	private int[][] mapRow;
 	private int[][] mapCol;
 	private int[][] mapLen;
-
 	private MappingProperties mappingProperties;
 	private final int nrows;
 	private final int ncols;
 	private int nlines;
 	private int actualValueCount;
-	private ArrayList<RawIndex> sampleRawIndexes;
+	private RawIndex[] sampleRawIndexes;
 	private MatrixBlock sampleMatrix;
 	private FrameBlock sampleFrame;
 	private Types.ValueType[] schema;
 	private final boolean isMatrix;
-
-	public ReaderMapping(int nlines, int nrows, int ncols, ArrayList<RawIndex> sampleRawIndexes, MatrixBlock matrix) throws Exception {
+	public ReaderMapping(int nlines, int nrows, int ncols, RawIndex[] sampleRawIndexes, MatrixBlock matrix) throws Exception {
 		this.nlines = nlines;
 		this.nrows = nrows;
 		this.ncols = ncols;
@@ -78,17 +82,40 @@ public class ReaderMapping {
 	}
 
 	private void ReadRaw(String raw) throws Exception {
-		this.sampleRawIndexes = new ArrayList<>();
+
 		InputStream is = IOUtilFunctions.toInputStream(raw);
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
 		String value;
-		int nlines = 0;
 
+		ArrayList<String> rawList = new ArrayList<>();
 		while((value = br.readLine()) != null) {
-			this.sampleRawIndexes.add(new RawIndex(value));
-			nlines++;
+			rawList.add(value);
 		}
-		this.nlines = nlines;
+		this.nlines = rawList.size();
+		this.sampleRawIndexes = new RawIndex[this.nlines];
+		int numThreads = OptimizerUtils.getParallelTextWriteParallelism();
+		try {
+			ExecutorService pool = CommonThreadPool.get(numThreads);
+			ArrayList<BuildRawIndexTask> tasks = new ArrayList<>();
+			int blklen = (int) Math.ceil((double) nlines / numThreads);
+			for(int i = 0; i < numThreads; i++) {
+				int beginIndex = i * blklen;
+				int endIndex = Math.min((i + 1) * blklen, nlines);
+				tasks.add(new BuildRawIndexTask(rawList, this.sampleRawIndexes, beginIndex, endIndex));
+			}
+			//wait until all tasks have been executed
+			List<Future<Object>> rt = pool.invokeAll(tasks);
+			pool.shutdown();
+
+			//check for exceptions
+			for(Future<Object> task : rt)
+				task.get();
+			int a = 100;
+		}
+		catch(Exception e) {
+			throw new RuntimeException("Failed parallel ReadRaw.", e);
+		}
+
 	}
 
 	private void runMapping(boolean isIndexMapping) {
@@ -109,7 +136,7 @@ public class ReaderMapping {
 				if(isIndexMapping || checkValueIsNotNullZero(r, c)) {
 					HashSet<Integer> checkedLines = new HashSet<>();
 					while(checkedLines.size() < nlines) {
-						RawIndex ri = this.sampleRawIndexes.get(itRow);
+						RawIndex ri = this.sampleRawIndexes[itRow];
 						Pair<Integer, Integer> pair = this.isMatrix ? ri.findValue(this.sampleMatrix.getValue(r, c)) : ri.findValue(this.sampleFrame.get(r, c), this.schema[c]);
 						if(pair != null) {
 							this.mapRow[r][c] = itRow;
@@ -314,7 +341,7 @@ public class ReaderMapping {
 		return mapLen;
 	}
 
-	public ArrayList<RawIndex> getSampleRawIndexes() {
+	public RawIndex[] getSampleRawIndexes() {
 		return sampleRawIndexes;
 	}
 
@@ -336,5 +363,33 @@ public class ReaderMapping {
 
 	public int getActualValueCount() {
 		return actualValueCount;
+	}
+
+	public boolean compareCellValue (int r, int c, String value){
+		if(isMatrix)
+			return sampleMatrix.getValue(r,c) == UtilFunctions.objectToDouble(Types.ValueType.FP64, value);
+		else
+			return sampleFrame.get(r,c).equals(UtilFunctions.stringToObject(sampleFrame.getColumnType(c), value));
+	}
+
+	private class BuildRawIndexTask implements Callable<Object> {
+		private final ArrayList<String> rawList;
+		private RawIndex[] sampleRawIndex;
+		private final int beginIndex;
+		private final int endIndex;
+
+		public BuildRawIndexTask(ArrayList<String> rawList, RawIndex[] sampleRawIndex, int beginIndex, int endIndex) {
+			this.rawList = rawList;
+			this.sampleRawIndex = sampleRawIndex;
+			this.beginIndex = beginIndex;
+			this.endIndex = endIndex;
+		}
+
+		@Override
+		public Object call() throws Exception {
+			for(int i=this.beginIndex; i<this.endIndex; i++)
+				this.sampleRawIndex[i] = new RawIndex(this.rawList.get(i));
+			return null;
+		}
 	}
 }

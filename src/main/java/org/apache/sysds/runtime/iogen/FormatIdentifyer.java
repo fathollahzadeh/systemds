@@ -45,14 +45,13 @@ public class FormatIdentifyer {
 	private int[][] mapLen;
 	private int actualValueCount;
 	private MappingProperties mappingProperties;
-	private ArrayList<RawIndex> sampleRawIndexes;
+	private RawIndex[] sampleRawIndexes;
 	private int nrows;
 	private int ncols;
 	private int nlines;
 	private int suffixStringLength = 50;
 	private ReaderMapping mappingValues;
 	private CustomProperties properties;
-
 	private BitSet staticColIndexes;
 
 	public FormatIdentifyer(String raw, MatrixBlock matrix) throws Exception {
@@ -140,7 +139,7 @@ public class FormatIdentifyer {
 				RawIndex raw = null;
 				for(int c = 0; c < ncols; c++) {
 					if(mapCol[0][c] != -1) {
-						raw = sampleRawIndexes.get(mapRow[0][c]);
+						raw = sampleRawIndexes[mapRow[0][c]];
 						raw.cloneReservedPositions();
 						break;
 					}
@@ -390,7 +389,7 @@ public class FormatIdentifyer {
 			for(int r = 0; r < nrows; r++) {
 				BitSet bitSet = bitSets[r];
 				for(int i = bitSet.nextSetBit(0); i != -1; i = bitSet.nextSetBit(i + 1))
-					list.add(sampleRawIndexes.get(i));
+					list.add(sampleRawIndexes[i]);
 				begin = checkRowIndexOnRaws(r, 0, list);
 				if(begin == -1) {
 					isExist = false;
@@ -473,7 +472,7 @@ public class FormatIdentifyer {
 		int nne = 0;
 		for(int r = 0; r < nrows; r++) {
 			if(mapRow[r][colIndex] != -1) {
-				RawIndex raw = sampleRawIndexes.get(mapRow[r][colIndex]);
+				RawIndex raw = sampleRawIndexes[mapRow[r][colIndex]];
 				raw.cloneReservedPositions();
 				Pair<Integer, Integer> pair = raw.findValue(r + beginPos);
 				raw.restoreReservedPositions();
@@ -512,7 +511,7 @@ public class FormatIdentifyer {
 	}
 	private int checkColIndexesOnRowRaw(int rowIndex, int beginPos) {
 		int nne = 0;
-		RawIndex raw = sampleRawIndexes.get(rowIndex);
+		RawIndex raw = sampleRawIndexes[rowIndex];
 		raw.cloneReservedPositions();
 		for(int c = 0; c < ncols; c++) {
 			if(mapCol[rowIndex][c] != -1) {
@@ -532,7 +531,7 @@ public class FormatIdentifyer {
 			return beginPos;
 	}
 	private int checkColIndexOnRowRaw(int rowIndex, int colIndex, int beginPos) {
-		RawIndex raw = sampleRawIndexes.get(rowIndex);
+		RawIndex raw = sampleRawIndexes[rowIndex];
 		raw.cloneReservedPositions();
 		Pair<Integer, Integer> pair = raw.findValue(colIndex + beginPos);
 		raw.restoreReservedPositions();
@@ -586,7 +585,7 @@ public class FormatIdentifyer {
 				}
 
 			endPos = 0;
-			beginPos = sampleRawIndexes.get(beginLine).getRawLength();
+			beginPos = sampleRawIndexes[beginLine].getRawLength();
 			for(int c = 0; c < ncols; c++) {
 				if(mapRow[r][c] == beginLine)
 					beginPos = Math.min(beginPos, mapCol[r][c]);
@@ -596,11 +595,11 @@ public class FormatIdentifyer {
 			}
 			StringBuilder sbPrefix = new StringBuilder();
 			if(lastLine != beginLine)
-				sbPrefix.append(sampleRawIndexes.get(lastLine).getRaw().substring(lastPos)).append("\n");
+				sbPrefix.append(sampleRawIndexes[lastLine].getRaw().substring(lastPos)).append("\n");
 
 			for(int i = lastLine + 1; i < beginLine; i++)
-				sbPrefix.append(sampleRawIndexes.get(i).getRaw()).append("\n");
-			sbPrefix.append(sampleRawIndexes.get(beginLine).getRaw().substring(0, beginPos));
+				sbPrefix.append(sampleRawIndexes[i].getRaw()).append("\n");
+			sbPrefix.append(sampleRawIndexes[beginLine].getRaw().substring(0, beginPos));
 
 			lastLine = endLine;
 			lastPos = endPos;
@@ -806,9 +805,9 @@ public class FormatIdentifyer {
 				rowIndexes.add(rowIndex);
 				String str;
 				if(removesSelected)
-					str = sampleRawIndexes.get(rowIndex).getRemainedTexts(0, mapCol[r][c]);
+					str = sampleRawIndexes[rowIndex].getRemainedTexts(0, mapCol[r][c]);
 				else
-					str = sampleRawIndexes.get(rowIndex).getRaw().substring(0, mapCol[r][c]);
+					str = sampleRawIndexes[rowIndex].getRaw().substring(0, mapCol[r][c]);
 				if(reverse)
 					prefixStrings.add(new StringBuilder(str).reverse().toString());
 				else
@@ -828,9 +827,9 @@ public class FormatIdentifyer {
 				rowIndexes.add(rowIndex);
 				String str;
 				if(removesSelected)
-					str = sampleRawIndexes.get(rowIndex).getRemainedTexts(0, mapCol[r][colIndex]);
+					str = sampleRawIndexes[rowIndex].getRemainedTexts(0, mapCol[r][colIndex]);
 				else
-					str = sampleRawIndexes.get(rowIndex).getRaw().substring(0, mapCol[r][colIndex]);
+					str = sampleRawIndexes[rowIndex].getRaw().substring(0, mapCol[r][colIndex]);
 				if(reverse)
 					prefixStrings.add(new StringBuilder(str).reverse().toString());
 				else
@@ -851,9 +850,9 @@ public class FormatIdentifyer {
 					continue;
 				String str;
 				if(removeData)
-					str = sampleRawIndexes.get(rowIndex).getRemainedTexts(mapCol[r][c] + mapLen[r][c], -1);
+					str = sampleRawIndexes[rowIndex].getRemainedTexts(mapCol[r][c] + mapLen[r][c], -1);
 				else
-					str = sampleRawIndexes.get(rowIndex).getRaw().substring(mapCol[r][c] + mapLen[r][c]);
+					str = sampleRawIndexes[rowIndex].getRaw().substring(mapCol[r][c] + mapLen[r][c]);
 				result[c].add(str);
 			}
 		}
@@ -868,9 +867,9 @@ public class FormatIdentifyer {
 				continue;
 			String str;
 			if(removeData)
-				str = sampleRawIndexes.get(rowIndex).getRemainedTexts(mapCol[r][col] + mapLen[r][col], -1);
+				str = sampleRawIndexes[rowIndex].getRemainedTexts(mapCol[r][col] + mapLen[r][col], -1);
 			else
-				str = sampleRawIndexes.get(rowIndex).getRaw().substring(mapCol[r][col] + mapLen[r][col]);
+				str = sampleRawIndexes[rowIndex].getRaw().substring(mapCol[r][col] + mapLen[r][col]);
 			result.add(str);
 		}
 		return result;
@@ -884,16 +883,16 @@ public class FormatIdentifyer {
 				continue;
 			String str;
 			if(removeData)
-				str = sampleRawIndexes.get(rowIndex).getRemainedTexts(mapCol[r][col] + mapLen[r][col], -1);
+				str = sampleRawIndexes[rowIndex].getRemainedTexts(mapCol[r][col] + mapLen[r][col], -1);
 			else
-				str = sampleRawIndexes.get(rowIndex).getRaw().substring(mapCol[r][col] + mapLen[r][col]);
+				str = sampleRawIndexes[rowIndex].getRaw().substring(mapCol[r][col] + mapLen[r][col]);
 			result.add(str);
 		}
 		return result;
 	}
 
 	private void updateMapsAndExtractAllSuffixStringsOfColsMultiLine(String beginString, String endString) {
-		ArrayList<RawIndex> upRawIndexes = new ArrayList<>();
+		RawIndex[] upRawIndexes = new RawIndex[nrows];
 		ArrayList<Pair<Integer, Integer>> beginIndexes = getTokenIndexOnMultiLineRecords(beginString);
 		ArrayList<Pair<Integer, Integer>> endIndexes;
 		String endToken;
@@ -905,8 +904,8 @@ public class FormatIdentifyer {
 			endIndexes = new ArrayList<>();
 			for(int i = 1; i < beginIndexes.size(); i++)
 				endIndexes.add(beginIndexes.get(i));
-			endIndexes.add(new Pair<>(this.sampleRawIndexes.size() - 1,
-				this.sampleRawIndexes.get(this.sampleRawIndexes.size() - 1).getRawLength()));
+			endIndexes.add(new Pair<>(this.sampleRawIndexes.length - 1,
+				this.sampleRawIndexes[this.sampleRawIndexes.length - 1].getRawLength()));
 			endToken = "";
 		}
 		int r = 0;
@@ -925,12 +924,12 @@ public class FormatIdentifyer {
 				p1 = beginIndexes.get(i);
 			}
 			j += n - 1;
-			sb.append(this.sampleRawIndexes.get(beginIndexes.get(i - n).getKey()).getRaw()
+			sb.append(this.sampleRawIndexes[beginIndexes.get(i - n).getKey()].getRaw()
 				.substring(beginIndexes.get(i - n).getValue()));
 			for(int ri = beginIndexes.get(i - n).getKey() + 1; ri < endIndexes.get(j).getKey(); ri++) {
-				sb.append(this.sampleRawIndexes.get(ri).getRaw());
+				sb.append(this.sampleRawIndexes[ri].getRaw());
 			}
-			sb.append(this.sampleRawIndexes.get(endIndexes.get(j).getKey()).getRaw()
+			sb.append(this.sampleRawIndexes[endIndexes.get(j).getKey()].getRaw()
 				.substring(0, endIndexes.get(j).getValue())).append(endToken);
 			RawIndex rawIndex = new RawIndex();
 			rawIndex.setRaw(sb.toString());
@@ -941,18 +940,18 @@ public class FormatIdentifyer {
 				if(mapRow[r][c] != -1) {
 					if(mapRow[r][c] != beginIndexes.get(i - n).getKey())
 						this.mapCol[r][c] +=
-							this.sampleRawIndexes.get(beginIndexes.get(i - n).getKey()).getRawLength() -
+							this.sampleRawIndexes[beginIndexes.get(i - n).getKey()].getRawLength() -
 								beginIndexes.get(i - n).getValue();
 					else
 						this.mapCol[r][c] -= beginIndexes.get(i - n).getValue();
 
 					for(int ci = beginIndexes.get(i - n).getKey() + 1; ci < this.mapRow[r][c]; ci++)
-						this.mapCol[r][c] += this.sampleRawIndexes.get(ci).getRawLength();
+						this.mapCol[r][c] += this.sampleRawIndexes[ci].getRawLength();
 					rawIndex.setReservedPositions(mapCol[r][c], mapLen[r][c]);
 					this.mapRow[r][c] = r;
 				}
 			}
-			upRawIndexes.add(rawIndex);
+			upRawIndexes[r] = rawIndex;
 			r++;
 		}
 		this.sampleRawIndexes = upRawIndexes;
@@ -961,8 +960,8 @@ public class FormatIdentifyer {
 	private ArrayList<Pair<Integer, Integer>> getTokenIndexOnMultiLineRecords(String token) {
 		ArrayList<Pair<Integer, Integer>> result = new ArrayList<>();
 
-		for(int ri = 0; ri < this.sampleRawIndexes.size(); ri++) {
-			String raw = this.sampleRawIndexes.get(ri).getRaw();
+		for(int ri = 0; ri < this.sampleRawIndexes.length; ri++) {
+			String raw = this.sampleRawIndexes[ri].getRaw();
 			int index;
 			int fromIndex = 0;
 			do {
@@ -982,8 +981,8 @@ public class FormatIdentifyer {
 	private ArrayList<Pair<Integer, Integer>> getTokenIndexOnMultiLineRecords(String beginToken, String endToken) {
 		ArrayList<Pair<Integer, Integer>> result = new ArrayList<>();
 
-		for(int ri = 0; ri < this.sampleRawIndexes.size(); ) {
-			String raw = this.sampleRawIndexes.get(ri).getRaw();
+		for(int ri = 0; ri < this.sampleRawIndexes.length; ) {
+			String raw = this.sampleRawIndexes[ri].getRaw();
 			int index;
 			int fromIndex = 0;
 			do {
@@ -1004,11 +1003,11 @@ public class FormatIdentifyer {
 							fromIndex++;
 					}
 					else {
-						if(ri + 1 == this.sampleRawIndexes.size())
+						if(ri + 1 == this.sampleRawIndexes.length)
 							break;
 						// skip empty rows
 						do {
-							raw = this.sampleRawIndexes.get(++ri).getRaw();
+							raw = this.sampleRawIndexes[++ri].getRaw();
 						}
 						while(raw.length() == 0);
 
@@ -1105,6 +1104,7 @@ public class FormatIdentifyer {
 
 	private ArrayList<String> cleanUPKey(ArrayList<String> keys, ArrayList<String> prefixes){
 		ArrayList<String> result = new ArrayList<>();
+		boolean firstKeyIsExtra = false;
 		int i = keys.size() -1;
 		for(; i>=0; i--) {
 			boolean flag = true;
@@ -1120,6 +1120,23 @@ public class FormatIdentifyer {
 				result.add(keys.get(index));
 		}
 		return result;
+	}
+	private boolean checkExtraKeyForCol(ArrayList<String> keys, String extraKey , ArrayList<String> prefixes){
+		boolean flag = true;
+		for(int i=0; i<keys.size()-1 && flag; i++)
+			flag = keys.get(i).equals(keys.get(i+1));
+		if(!flag)
+			return false;
+		for(int j = 0; j < prefixes.size() && flag; j++) {
+			int index = prefixes.get(j).indexOf(extraKey);
+			if(index !=-1) {
+				index += extraKey.length();
+				flag = getIndexOfKeyPatternOnString(prefixes.get(j), 0, keys, index) == prefixes.get(j).length();
+			}
+			else
+				flag = false;
+		}
+		return flag;
 	}
 	private Integer getIndexOfKeyPatternOnString(String str, ArrayList<String> key, int beginPos) {
 		return getIndexOfKeyPatternOnString(str,0, key, beginPos);
@@ -1342,7 +1359,7 @@ public class FormatIdentifyer {
 
 			// CleanUP keys: reduce key list if it possible
 			for(int c :colIndexes) {
-				keys[c] = cleanUPKey(keys[c], prefixes[c]);
+				ArrayList<String> cleanUPKeys =  cleanUPKey(keys[c], prefixes[c]);
 //				boolean flagOptimal = false;
 //				for(int i=0; i< keys[c].size() && !flagOptimal; i++)
 //					flagOptimal = keys[c].get(i).contains(" ");
@@ -1353,10 +1370,22 @@ public class FormatIdentifyer {
 				// set static col flag
 				Boolean flagFixCol = true;
 				for(int r = 0; r < nrows && flagFixCol && prefixes[c].size() !=nrows; r++){
-					String rawStr =  sampleRawIndexes.get(r).getRaw();
-					flagFixCol = getIndexOfKeyPatternOnString(rawStr, keys[c], 0) !=-1;
+					String rawStr =  sampleRawIndexes[r].getRaw();
+					flagFixCol = getIndexOfKeyPatternOnString(rawStr, cleanUPKeys, 0) !=-1;
 				}
 				staticColIndexes.set(c, flagFixCol);
+				if(!flagFixCol && cleanUPKeys.size() < keys[c].size()){
+					String extraKey = keys[c].get(keys[c].size()-cleanUPKeys.size()-1);
+					if(checkExtraKeyForCol(cleanUPKeys, extraKey,prefixes[c])){
+						keys[c] = new ArrayList<>();
+						keys[c].add(extraKey);
+						keys[c].addAll(cleanUPKeys);
+					}
+					else
+						keys[c] = cleanUPKeys;
+				}
+				else
+					keys[c] = cleanUPKeys;
 
 				// Build suffixes
 				Set<String> setSuffix = new HashSet<>();
@@ -1428,7 +1457,7 @@ public class FormatIdentifyer {
 				if(mapCol[r][ie] != -1)
 					break;
 			if(ie != -1 && ib != -1 && ie != ib) {
-				String str = sampleRawIndexes.get(rowIndex).getRaw()
+				String str = sampleRawIndexes[rowIndex].getRaw()
 					.substring(mapCol[r][ib] + mapLen[r][ib], mapCol[r][ie]);
 				suffixesBetweenBeginEnd.add(str);
 			}
@@ -1490,6 +1519,41 @@ public class FormatIdentifyer {
 			}
 		}
 		return result;
+	}
+
+	public boolean isDelimAndSuffixesSame(String delim, int[] cols){
+		 HashSet<String>[] ends = properties.endWithValueStrings();
+		 boolean flag = true;
+		 for(int c = 0; c<cols.length && flag; c++){
+			 if(ends[cols[c]].size() == 0)
+				 continue;
+			 if(ends[cols[c]].size() != 1 || !ends[cols[c]].iterator().next().equals(delim))
+				 flag = false;
+		 }
+		 if(!flag){
+			 for(int r=0; r<nrows; r++){
+				 ArrayList<Integer> c = new ArrayList<>();
+				  for(int ci:cols){
+					 if(mapCol[r][ci] !=-1)
+						 c.add(ci);
+				 }
+				  if(c.size() <=1)
+					  continue;
+				  int c1 = c.get(0);
+				  int c2 = c.get(c.size()-1);
+				 int rowIndex = mapRow[r][c.get(0)];
+				 String str = sampleRawIndexes[rowIndex].getRaw().substring(mapCol[r][c1], mapCol[r][c2]+mapLen[r][c2]);
+				 flag = true;
+				 if(str.length() > 0) {
+					 String[] strValues = str.split(delim, -1);
+					 for(int ci=0; ci<c.size() && flag; ci++){
+						 if(mapCol[r][c.get(ci)]!=-1)
+							 flag = mappingValues.compareCellValue(r, c.get(ci), strValues[ci]);
+					 }
+				 }
+			 }
+		 }
+		 return flag;
 	}
 	private ArrayList<String> stringTokenize(String str, int tokenLength) {
 		ArrayList<String> result = new ArrayList<>();
@@ -1624,6 +1688,7 @@ public class FormatIdentifyer {
 		result.sort(AscendingArrayOfStringComparator);
 		return result;
 	}
+
 	Comparator<ArrayList<String>> AscendingArrayOfStringComparator = new Comparator<ArrayList<String>>() {
 		@Override
 		public int compare(ArrayList<String> strings, ArrayList<String> t1) {

@@ -122,21 +122,25 @@ public class CodeGenTrieNode {
 			src.append("}\n");
 			src.append("}\n");
 		}
-		else if(valueType == Types.ValueType.STRING || valueType == Types.ValueType.BOOLEAN) {
-			if(naStrings != null && naStrings.size() > 0) {
-				StringBuilder sb = new StringBuilder();
-				sb.append("if(");
-				for(String na : naStrings) {
-					src.append("naStrings.contains(\"" + na + "\")").append("|| \n");
-				}
-				sb.delete(sb.length() - 2, sb.length());
-				sb.append("){ \n");
-				sb.append("cellValue+" + colIndex + " = null;");
-				sb.append("}\n");
-			}
-			else
-				src.append(getParsCode("cellStr" + colIndex));
+		else if(valueType == Types.ValueType.BOOLEAN) {
+			src.append(getParsCode("cellStr" + colIndex));
 			src.append(destination).append("(row, " + colIndex + ", cellValue" + colIndex + "); \n");
+		}
+		else if(valueType == Types.ValueType.STRING) {
+//			if(naStrings != null && naStrings.size() > 0) {
+//				StringBuilder sb = new StringBuilder();
+//				sb.append("if(");
+//				for(String na : naStrings) {
+//					src.append("naStrings.contains(\"" + na + "\")").append("|| \n");
+//				}
+//				sb.delete(sb.length() - 2, sb.length());
+//				sb.append("){ \n");
+//				sb.append("cellValue+" + colIndex + " = null;");
+//				sb.append("}\n");
+//			}
+//			else
+//				src.append(getParsCode("cellStr" + colIndex));
+			src.append(destination).append("(row, " + colIndex + ", cellStr" + colIndex + "); \n");
 		}
 		return src.toString();
 	}
