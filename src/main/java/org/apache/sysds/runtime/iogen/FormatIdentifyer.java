@@ -1174,7 +1174,7 @@ public class FormatIdentifyer {
 		HashSet<String>[] colSuffixes = new HashSet[ncols];
 		LongestCommonSubsequence lcs = new LongestCommonSubsequence();
 
-		int numThreads = 1;//OptimizerUtils.getParallelTextWriteParallelism();
+		int numThreads = OptimizerUtils.getParallelTextWriteParallelism();
 		try {
 			ExecutorService pool = CommonThreadPool.get(numThreads);
 			ArrayList<BuildColsKeyPatternSingleRowTask> tasks = new ArrayList<>();
