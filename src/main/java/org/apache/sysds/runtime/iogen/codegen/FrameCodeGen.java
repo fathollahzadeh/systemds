@@ -59,6 +59,7 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 		CodeGenTrie trie = new CodeGenTrie(properties, "dest.set", false, formatIdentifyer);
 		String javaCode = trie.getJavaCode();
 		src.append("String str=\"\"; \n");
+		src.append("String[] parts; \n");
 		src.append("String remainStr = \"\"; \n");
 		src.append("int col = -1; \n");
 		src.append("long lnnz = 0; \n");

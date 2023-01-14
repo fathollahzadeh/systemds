@@ -114,16 +114,16 @@ public class CodeGenTrie {
 			((rowIndex == RowIndexStructure.IndexProperties.Identity &&
 				colIndex == ColIndexStructure.IndexProperties.Identity) ||
 				rowIndex == RowIndexStructure.IndexProperties.SeqScatter)) {
-			getJavaCode(ctnValue, src, "0");
+			getJavaCode(ctnValue, src, "0", true);
 			src.append("row++; \n");
 		}
 		// example: MM
 		else if(rowIndex == RowIndexStructure.IndexProperties.CellWiseExist &&
 			colIndex == ColIndexStructure.IndexProperties.CellWiseExist) {
-			getJavaCode(ctnIndexes, src, "0");
+			getJavaCode(ctnIndexes, src, "0", false);
 			src.append("if(col < " + ncols + "){ \n");
 			if(data != MappingProperties.DataProperties.NOTEXIST) {
-				getJavaCode(ctnValue, src, "0");
+				getJavaCode(ctnValue, src, "0", false);
 			}
 			else
 				src.append(destination).append("(row, col, cellValue); \n");
@@ -167,8 +167,8 @@ public class CodeGenTrie {
 		return base + "_" + result;
 	}
 
-	private void getJavaCode(CodeGenTrieNode node, StringBuilder src, String currPos) {
-		getJavaCodeIndexOf(node, src, currPos, true);
+	private void getJavaCode(CodeGenTrieNode node, StringBuilder src, String currPos, boolean arrayCodeGenEnable) {
+		getJavaCodeIndexOf(node, src, currPos, arrayCodeGenEnable);
 	}
 
 	private void getJavaCodeIndexOf(CodeGenTrieNode node, StringBuilder src, String currPos,
@@ -245,9 +245,7 @@ public class CodeGenTrie {
 					tmpIndex++;
 				}
 				if(keys.size() != colIndexes.size()) {
-					if(keys.size() == colIndexes.size() + 1 && colIndexesExtra.get(0) == 0) {
-						src.append("// ********************************** WITH EXTRA \n");
-					}
+					if(keys.size() == colIndexes.size() + 1 && colIndexesExtra.get(0) == 0) {}
 					else
 						return null;
 				}
@@ -266,7 +264,6 @@ public class CodeGenTrie {
 				// Case 3: key = multi and index = sequence
 				// Case 4: key = multi and index = irregular
 
-				String cellString = getRandomName("cellString");
 				String tmpDest = destination.split("\\.")[0];
 
 				int[] cols = new int[colIndexes.size()];
@@ -292,13 +289,10 @@ public class CodeGenTrie {
 					boolean isDelimAndSuffixesSame = false;
 					// #Case 1: key = single and index = sequence
 					if(isKeySingle && isIndexSequence) {
-						src.append("// CONDITION 1: +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ \n");
 						String baseIndex = colIndexes.get(0);
 						String key = keysSet.iterator().next();
 						String mKey = refineKeyForSearch(key);
 						String colIndex = getRandomName("colIndex");
-						src.append("String[] parts; \n");
-
 						if(!isMatrix) {
 							isDelimAndSuffixesSame = formatIdentifyer.isDelimAndSuffixesSame(key, cols, conflict);
 							if(conflict != null) {
@@ -356,7 +350,6 @@ public class CodeGenTrie {
 						String key = keysSet.iterator().next();
 						String mKey = refineKeyForSearch(key);
 
-						src.append("String[] parts; \n");
 						if(!isMatrix) {
 							isDelimAndSuffixesSame = formatIdentifyer.isDelimAndSuffixesSame(key, cols, conflict);
 							if(conflict != null) {

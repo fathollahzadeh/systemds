@@ -64,6 +64,7 @@ public class MatrixCodeGen extends TemplateCodeGenBase {
 		src.append("String str=\"\"; \n");
 		src.append("String remainStr = \"\"; \n");
 		src.append("int col = -1; \n");
+		src.append("String[] parts; \n");
 		src.append("int row = rowPos.intValue(); \n");
 		src.append("long lnnz = 0; \n");
 		src.append("int index, endPos, strLen; \n");
