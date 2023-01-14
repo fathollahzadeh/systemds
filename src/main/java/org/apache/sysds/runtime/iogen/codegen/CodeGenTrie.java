@@ -336,6 +336,7 @@ public class CodeGenTrie {
 								src.append("index = indexConflict; \n");
 							}
 						}
+
 						return cn;
 					}
 					// #Case 2: key = single and index = irregular
