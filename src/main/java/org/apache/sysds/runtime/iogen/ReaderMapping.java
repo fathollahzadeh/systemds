@@ -110,7 +110,6 @@ public class ReaderMapping {
 			//check for exceptions
 			for(Future<Object> task : rt)
 				task.get();
-			int a = 100;
 		}
 		catch(Exception e) {
 			throw new RuntimeException("Failed parallel ReadRaw.", e);
@@ -367,9 +366,20 @@ public class ReaderMapping {
 
 	public boolean compareCellValue (int r, int c, String value){
 		if(isMatrix)
-			return sampleMatrix.getValue(r,c) == UtilFunctions.objectToDouble(Types.ValueType.FP64, value);
+			try {
+				return sampleMatrix.getValue(r, c) == UtilFunctions.objectToDouble(Types.ValueType.FP64, value);
+			}
+			catch(Exception exception){
+				return false;
+			}
+
 		else
-			return sampleFrame.get(r,c).equals(UtilFunctions.stringToObject(sampleFrame.getColumnType(c), value));
+			try {
+				return sampleFrame.get(r,c).equals(UtilFunctions.stringToObject(sampleFrame.getColumnType(c), value));
+			}
+			catch(Exception exception){
+				return false;
+			}
 	}
 
 	private class BuildRawIndexTask implements Callable<Object> {

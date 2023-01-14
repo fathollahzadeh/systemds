@@ -19,6 +19,7 @@
 
 package org.apache.sysds.runtime.iogen;
 
+import org.apache.spark.sql.sources.In;
 import org.apache.sysds.hops.OptimizerUtils;
 import org.apache.sysds.lops.Lop;
 import org.apache.sysds.runtime.frame.data.FrameBlock;
@@ -1104,12 +1105,15 @@ public class FormatIdentifyer {
 
 	private ArrayList<String> cleanUPKey(ArrayList<String> keys, ArrayList<String> prefixes){
 		ArrayList<String> result = new ArrayList<>();
-		boolean firstKeyIsExtra = false;
 		int i = keys.size() -1;
 		for(; i>=0; i--) {
 			boolean flag = true;
-			for(int j =0; j< prefixes.size() && flag; j++)
+			for(int j =0; j< prefixes.size() && flag; j++) {
+				String bk = keys.get(i);
+				int k1 = getIndexOfKeyPatternOnString(prefixes.get(j), i, keys, 0);
+				int k2 = prefixes.get(j).length();
 				flag = getIndexOfKeyPatternOnString(prefixes.get(j), i, keys, 0) == prefixes.get(j).length();
+			}
 			if(flag)
 				break;
 		}
@@ -1118,6 +1122,8 @@ public class FormatIdentifyer {
 		else {
 			for(int index = i; index< keys.size(); index++)
 				result.add(keys.get(index));
+
+			int a = 100;
 		}
 		return result;
 	}
@@ -1168,7 +1174,7 @@ public class FormatIdentifyer {
 		HashSet<String>[] colSuffixes = new HashSet[ncols];
 		LongestCommonSubsequence lcs = new LongestCommonSubsequence();
 
-		int numThreads = OptimizerUtils.getParallelTextWriteParallelism();
+		int numThreads = 1;//OptimizerUtils.getParallelTextWriteParallelism();
 		try {
 			ExecutorService pool = CommonThreadPool.get(numThreads);
 			ArrayList<BuildColsKeyPatternSingleRowTask> tasks = new ArrayList<>();
@@ -1193,6 +1199,8 @@ public class FormatIdentifyer {
 			//check for exceptions
 			for(Future<Object> task : rt)
 				task.get();
+
+			int a = 50;
 		}
 		catch(Exception e) {
 			throw new RuntimeException("Failed parallel ColsKeyPatternSingleRow.", e);
@@ -1359,6 +1367,9 @@ public class FormatIdentifyer {
 
 			// CleanUP keys: reduce key list if it possible
 			for(int c :colIndexes) {
+				if(c == 5){
+					int fff = 500;
+				}
 				ArrayList<String> cleanUPKeys =  cleanUPKey(keys[c], prefixes[c]);
 //				boolean flagOptimal = false;
 //				for(int i=0; i< keys[c].size() && !flagOptimal; i++)
@@ -1436,7 +1447,6 @@ public class FormatIdentifyer {
 			return null;
 
 		int lastColIndex = cols[cols.length - 1];
-		int beginColIndex = cols[0];
 		ArrayList<String> suffixesBetweenBeginEnd = new ArrayList<>();
 		ArrayList<String> suffixesRefine = extractAllSuffixStringsOfColsSingleLine(lastColIndex, true);
 		Set<String> setSuffixesRefine = new HashSet<>();
@@ -1444,23 +1454,20 @@ public class FormatIdentifyer {
 		if(setSuffixesRefine.size() == 1 && setSuffixesRefine.iterator().next().length() == 0)
 			return null;
 
+		int rowIndex;
 		for(int r = 0; r < nrows; r++) {
-			int rowIndex = mapRow[r][beginColIndex];
-			if(rowIndex == -1)
-				continue;
-			int ib = beginColIndex;
-			int ie = lastColIndex;
-			for(; ib < lastColIndex - 1; ib++)
-				if(mapCol[r][ib] != -1)
-					break;
-			for(; ie > 0; ie--)
-				if(mapCol[r][ie] != -1)
-					break;
-			if(ie != -1 && ib != -1 && ie != ib) {
-				String str = sampleRawIndexes[rowIndex].getRaw()
-					.substring(mapCol[r][ib] + mapLen[r][ib], mapCol[r][ie]);
-				suffixesBetweenBeginEnd.add(str);
+			ArrayList<Integer> filledCols = new ArrayList<>();
+			for(int c: cols){
+				if(mapCol[r][c] !=-1)
+					filledCols.add(c);
 			}
+			if(filledCols.size() <= 1  || (rowIndex=mapRow[r][filledCols.get(0)]) == -1)
+				continue;
+
+			int ib = filledCols.get(0);
+			int ie = filledCols.get(filledCols.size() -1);
+			String str = sampleRawIndexes[rowIndex].getRaw().substring(mapCol[r][ib] + mapLen[r][ib], mapCol[r][ie]);
+			suffixesBetweenBeginEnd.add(str);
 		}
 
 		ArrayList<String> containList = new ArrayList<>();
@@ -1473,15 +1480,9 @@ public class FormatIdentifyer {
 			String str;
 			if((str = suf.substring(1, index)).length() > 0) {
 				containList.add(str);
-				if(maxTokenLength == 0) {
+				if(maxTokenLength == 0 || maxTokenLength > str.length()) {
 					maxTokenLength = str.length();
 					selectedString = str;
-				}
-				else {
-					if(maxTokenLength > str.length()) {
-						maxTokenLength = str.length();
-						selectedString = str;
-					}
 				}
 			}
 		}
@@ -1489,6 +1490,7 @@ public class FormatIdentifyer {
 			return null;
 
 		Map<Integer, ArrayList<String>> conflicts = new HashMap<>();
+		maxTokenLength = Math.min(maxTokenLength, 50);
 		for(int tl = 1; tl < maxTokenLength; tl++) {
 			ArrayList<String> tokens = stringTokenize(selectedString, tl);
 			conflicts.put(tl, new ArrayList<>());
@@ -1503,25 +1505,48 @@ public class FormatIdentifyer {
 					conflicts.get(tl).add(t);
 			}
 		}
-		String result = null;
-		for(int i = maxTokenLength - 1; i > 0 && result == null; i--) {
+		ArrayList<Pair<String, ArrayList<Integer>>> candidate = new ArrayList<>();
+		ArrayList<String> tokens = new ArrayList<>();
+		for(int i = maxTokenLength - 1; i > 0 ; i--) {
 			for(String tc : conflicts.get(i)) {
-				boolean flag = true;
+				boolean flag = false;
+				for(String currenToken: tokens)
+					if(currenToken.startsWith(tc)){
+						flag = true;
+						break;
+					}
+				if(flag)
+					continue;
+				else flag = true;
+				ArrayList<Integer> distances = new ArrayList<>();
+				boolean containZero = false;
 				for(String s : containList) {
-					flag = s.contains(tc);
+					int index = s.indexOf(tc);
+					flag = index!=-1;
 					if(!flag)
 						break;
+					else {
+						distances.add(index);
+						containZero |= index == 0;
+					}
 				}
 				if(flag) {
-					result = tc;
-					break;
+					if(containZero)
+						return tc;
+					candidate.add(new Pair<>(tc, distances));
+					tokens.add(tc);
 				}
 			}
 		}
-		return result;
+		if(candidate.size() > 0) {
+			candidate.sort(AscendingPairListComparator);
+			return candidate.get(0).getKey();
+		}
+		else
+			return null;
 	}
 
-	public boolean isDelimAndSuffixesSame(String delim, int[] cols){
+	public boolean isDelimAndSuffixesSame(String delim, int[] cols, String conflict){
 		 HashSet<String>[] ends = properties.endWithValueStrings();
 		 boolean flag = true;
 		 for(int c = 0; c<cols.length && flag; c++){
@@ -1540,9 +1565,17 @@ public class FormatIdentifyer {
 				  if(c.size() <=1)
 					  continue;
 				  int c1 = c.get(0);
-				  int c2 = c.get(c.size()-1);
-				 int rowIndex = mapRow[r][c.get(0)];
-				 String str = sampleRawIndexes[rowIndex].getRaw().substring(mapCol[r][c1], mapCol[r][c2]+mapLen[r][c2]);
+				  int rowIndex = mapRow[r][c1];
+				 String str;
+				 if(conflict == null)
+					 str = sampleRawIndexes[rowIndex].getRaw().substring(mapCol[r][c1]);
+				 else {
+					 int conflictIndex = sampleRawIndexes[rowIndex].getRaw().indexOf(conflict, mapCol[r][c1]);
+					 if(conflictIndex!=-1)
+					 	str =sampleRawIndexes[rowIndex].getRaw().substring(mapCol[r][c1], conflictIndex);
+					 else
+						 str = sampleRawIndexes[rowIndex].getRaw().substring(mapCol[r][c1]);
+				 }
 				 flag = true;
 				 if(str.length() > 0) {
 					 String[] strValues = str.split(delim, -1);
@@ -1551,6 +1584,8 @@ public class FormatIdentifyer {
 							 flag = mappingValues.compareCellValue(r, c.get(ci), strValues[ci]);
 					 }
 				 }
+				 if(!flag)
+					 break;
 			 }
 		 }
 		 return flag;
@@ -1567,6 +1602,7 @@ public class FormatIdentifyer {
 		}
 		return result;
 	}
+
 	private ArrayList<String> optimalKeyPattern(ArrayList<String> keys, ArrayList<String> prefixes) {
 		ArrayList<ArrayList<String>> keysList = new ArrayList<>();
 		for(int i = 0; i < keys.size() - 1; i++) {
@@ -1705,6 +1741,20 @@ public class FormatIdentifyer {
 		@Override
 		public int compare(Pair<String, Integer> stringIntegerPair, Pair<String, Integer> t1) {
 			return stringIntegerPair.getKey().length() - t1.getKey().length();
+		}
+	};
+
+	Comparator<Pair<String, ArrayList<Integer>>> AscendingPairListComparator = new Comparator<Pair<String, ArrayList<Integer>>>() {
+		@Override
+		public int compare(Pair<String, ArrayList<Integer>> stringArrayListPair, Pair<String, ArrayList<Integer>> t1) {
+			boolean flag = true;
+			for(int i=0; i< stringArrayListPair.getValue().size() && flag; i++){
+				flag = stringArrayListPair.getValue().get(i) > t1.getValue().get(i);
+			}
+			if(flag)
+				return 1;
+			else
+				return -1;
 		}
 	};
 }

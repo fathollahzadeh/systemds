@@ -168,11 +168,14 @@ public class CodeGenTrie {
 	}
 
 	private void getJavaCode(CodeGenTrieNode node, StringBuilder src, String currPos) {
-		getJavaCodeIndexOf(node, src, currPos);
+		getJavaCodeIndexOf(node, src, currPos, true);
 	}
 
-	private void getJavaCodeIndexOf(CodeGenTrieNode node, StringBuilder src, String currPos) {
-		CodeGenTrieNode tmpNode = getJavaCodeRegular(node, src, currPos);
+	private void getJavaCodeIndexOf(CodeGenTrieNode node, StringBuilder src, String currPos,
+		boolean arrayCodeGenEnable) {
+		CodeGenTrieNode tmpNode = null;
+		if(arrayCodeGenEnable)
+			tmpNode = getJavaCodeRegular(node, src, currPos);
 		if(tmpNode == null) {
 			if(node.isEndOfCondition())
 				src.append(node.geValueCode(destination, currPos));
@@ -197,14 +200,14 @@ public class CodeGenTrie {
 						src.append("int " + currPosVariable + " = index + " + key.length() + "; \n");
 					}
 					CodeGenTrieNode child = node.getChildren().get(key);
-					getJavaCodeIndexOf(child, src, currPosVariable);
+					getJavaCodeIndexOf(child, src, currPosVariable, arrayCodeGenEnable);
 					if(key.length() > 0)
 						src.append("} \n");
 				}
 			}
 		}
 		else if(!tmpNode.isEndOfCondition())
-			getJavaCodeIndexOf(tmpNode, src, currPos);
+			getJavaCodeIndexOf(tmpNode, src, currPos, arrayCodeGenEnable);
 	}
 
 	private CodeGenTrieNode getJavaCodeRegular(CodeGenTrieNode node, StringBuilder src, String currPos) {
@@ -242,10 +245,8 @@ public class CodeGenTrie {
 					tmpIndex++;
 				}
 				if(keys.size() != colIndexes.size()) {
-					if(keys.size() == colIndexes.size()+1 && colIndexesExtra.get(0) == 0){
-						src.append("//+++++++++++++++++++++++++++++++++++ \n");
-						//getJavaCodeIndexOf(cn, src, currPos);
-						//return cn;
+					if(keys.size() == colIndexes.size() + 1 && colIndexesExtra.get(0) == 0) {
+						src.append("// ********************************** WITH EXTRA \n");
 					}
 					else
 						return null;
@@ -272,222 +273,140 @@ public class CodeGenTrie {
 				for(int i = 0; i < cols.length; i++)
 					cols[i] = Integer.parseInt(colIndexes.get(i));
 
-				// #Case 1: key = single and index = sequence
-				if(isKeySingle && isIndexSequence) {
-					String baseIndex = colIndexes.get(0);
-					String key = keysSet.iterator().next();
-					String mKey = refineKeyForSearch(key);
-					String colIndex = getRandomName("colIndex");
-					String conflict = null;
+				// check 1:
+				String conflict = !isMatrix ? formatIdentifyer.getConflictToken(cols) : null;
+
+				// check is array has conflict?
+				// if the array has just one item, the if-then-else is a good option
+				// otherwise we will follow loop code gen
+				if(colIndexes.size() == 1) {
+					if(conflict != null) {
+						src.append("// conflict token : " + conflict + " appended to end of value token list \n");
+						properties.endWithValueStrings()[Integer.parseInt(colIndexes.get(0))].add(conflict);
+					}
+					else
+						src.append("// conflict token for find end of array was NULL \n");
+					//getJavaCodeIndexOf(node, src, currPos, false);
+				}
+				else {
 					boolean isDelimAndSuffixesSame = false;
-					src.append("String[] parts; \n");
-					if(!isMatrix) {
-						conflict = formatIdentifyer.getConflictToken(cols);
-						isDelimAndSuffixesSame = formatIdentifyer.isDelimAndSuffixesSame(key, cols);
-						//isDelimAndSuffixesSame = false;
-						if(conflict != null) {
-							src.append("indexConflict = ").append("str.indexOf(" + refineKeyForSearch(conflict) + "," + currPos + "); \n");
-							src.append("if (indexConflict != -1) \n");
-							src.append("parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + ", indexConflict), "+	mKey + "); \n");
-							src.append("else \n");
-						}
-					}
-					src.append("parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + "), " + mKey + "); \n");
-					src.append("int ").append(colIndex).append("; \n");
-					src.append("for (int i=0; i< Math.min(parts.length, " + colIndexes.size() + "); i++) {\n");
-					src.append(colIndex).append(" = i+").append(baseIndex).append("; \n");
-					if(isDelimAndSuffixesSame){
+					// #Case 1: key = single and index = sequence
+					if(isKeySingle && isIndexSequence) {
+						src.append("// CONDITION 1: +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ \n");
+						String baseIndex = colIndexes.get(0);
+						String key = keysSet.iterator().next();
+						String mKey = refineKeyForSearch(key);
+						String colIndex = getRandomName("colIndex");
+						src.append("String[] parts; \n");
+
 						if(!isMatrix) {
-							src.append(destination).append("(row," + colIndex + ",UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +colIndex + "], parts[i])); \n");
+							isDelimAndSuffixesSame = formatIdentifyer.isDelimAndSuffixesSame(key, cols, conflict);
+							if(conflict != null) {
+								src.append("indexConflict=")
+									.append("str.indexOf(" + refineKeyForSearch(conflict) + "," + currPos + "); \n");
+								src.append("if (indexConflict != -1) \n");
+								src.append(
+									"parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + ", indexConflict)," +
+										mKey + "); \n");
+								src.append("else \n");
+							}
+							src.append(
+								"parts=IOUtilFunctions.splitCSV(str.substring(" + currPos + "), " + mKey + "); \n");
+							src.append("int ").append(colIndex).append("; \n");
+							src.append("for (int i=0; i< Math.min(parts.length, " + colIndexes.size() + "); i++) {\n");
+							src.append(colIndex).append(" = i+").append(baseIndex).append("; \n");
+							if(isDelimAndSuffixesSame) {
+								if(!isMatrix)
+									src.append(destination).append(
+										"(row," + colIndex + ",UtilFunctions.stringToObject(" + tmpDest +
+											".getSchema()[" + colIndex + "], parts[i])); \n");
+								else
+									src.append(destination).append(
+										"(row," + colIndex + ",UtilFunctions.parseToDouble(parts[i], null)); \n");
+							}
+							else {
+								src.append(
+									"endPos=TemplateUtil.getEndPos(parts[i], parts[i].length(),0,endWithValueString[" +
+										colIndex + "]); \n");
+								if(!isMatrix)
+									src.append(destination).append(
+										"(row," + colIndex + ",UtilFunctions.stringToObject(" + tmpDest +
+											".getSchema()[" + colIndex + "], parts[i].substring(0,endPos))); \n");
+								else
+									src.append(destination).append("(row," + colIndex +
+										",UtilFunctions.parseToDouble(parts[i].substring(0,endPos), null)); \n");
+							}
+							src.append("} \n");
+							if(conflict != null) {
+								src.append("if (indexConflict !=-1) \n");
+								src.append("index = indexConflict; \n");
+							}
 						}
-						else
-							src.append(destination).append("(row," + colIndex + ",UtilFunctions.parseToDouble(parts[i], null)); \n");
 					}
-					else {
-						src.append("endPos = TemplateUtil.getEndPos(parts[i], parts[i].length(), 0, endWithValueString[" + colIndex +"]); \n");
+					// #Case 2: key = single and index = irregular
+					if(isKeySingle && !isIndexSequence) {
+						StringBuilder srcColIndexes = new StringBuilder("new int[]{");
+						for(String c : colIndexes)
+							srcColIndexes.append(c).append(",");
+
+						srcColIndexes.deleteCharAt(srcColIndexes.length() - 1);
+						srcColIndexes.append("}");
+						String colIndexName = getRandomName("targetColIndex");
+						src.append("int[] ").append(colIndexName).append("=").append(srcColIndexes).append("; \n");
+						String key = keysSet.iterator().next();
+						String mKey = refineKeyForSearch(key);
+
+						src.append("String[] parts; \n");
 						if(!isMatrix) {
-							src.append(destination).append("(row," + colIndex + ",UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +colIndex + "], parts[i].substring(0,endPos))); \n");
+							isDelimAndSuffixesSame = formatIdentifyer.isDelimAndSuffixesSame(key, cols, conflict);
+							if(conflict != null) {
+								src.append("indexConflict = ")
+									.append("str.indexOf(" + refineKeyForSearch(conflict) + "," + currPos + "); \n");
+								src.append("if (indexConflict != -1) \n");
+								src.append(
+									"parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + ", indexConflict), " +
+										mKey + "); \n");
+								src.append("else \n");
+							}
 						}
-						else
-							src.append(destination).append("(row," + colIndex + ",UtilFunctions.parseToDouble(parts[i].substring(0,endPos), null)); \n");
-					}
-					src.append("} \n");
-					if(conflict != null) {
-						src.append("if (indexConflict !=-1) \n");
-						src.append("index = indexConflict; \n");
-					}
-				}
-				// #Case 2: key = single and index = irregular
-				if(isKeySingle && !isIndexSequence) {
-					StringBuilder srcColIndexes = new StringBuilder("new int[]{");
-					for(String c: colIndexes)
-						srcColIndexes.append(c).append(",");
-
-					srcColIndexes.deleteCharAt(srcColIndexes.length() - 1);
-					srcColIndexes.append("}");
-					String colIndexName = getRandomName("targetColIndex");
-					src.append("int[] ").append(colIndexName).append("=").append(srcColIndexes).append("; \n");
-					String key = keysSet.iterator().next();
-					String mKey = refineKeyForSearch(key);
-					String conflict = null;
-					src.append("String[] parts; \n");
-					if(!isMatrix){
-						conflict = formatIdentifyer.getConflictToken(cols);
+						src.append(
+							"parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + "), " + mKey + "); \n");
+						src.append("for (int i=0; i< Math.min(parts.length, " + colIndexes.size() + "); i++) {\n");
+						if(isDelimAndSuffixesSame) {
+							if(!isMatrix) {
+								src.append(destination).append(
+									"(row," + colIndexName + "[i],UtilFunctions.stringToObject(" + tmpDest +
+										".getSchema()[" + colIndexName + "[i]], parts[i])); \n");
+							}
+							else
+								src.append(destination).append(
+									"(row," + colIndexName + "[i],UtilFunctions.parseToDouble(parts[i], null)); \n");
+						}
+						else {
+							if(!isMatrix) {
+								src.append(
+									"endPos = TemplateUtil.getEndPos(parts[i], parts[i].length(), 0, endWithValueString[" +
+										colIndexName + "[i]]); \n");
+								src.append(destination).append(
+									"(row," + colIndexName + "[i],UtilFunctions.stringToObject(" + tmpDest +
+										".getSchema()[" + colIndexName + "[i]], parts[i].substring(0, endPos))); \n");
+							}
+							else
+								src.append(destination).append("(row," + colIndexName +
+									"[i],UtilFunctions.parseToDouble(parts[i].substring(0, endPos), null)); \n");
+						}
+						src.append("} \n");
 						if(conflict != null) {
-							src.append("indexConflict = ").append("str.indexOf(" + refineKeyForSearch(conflict) + "," + currPos + "); \n");
-							src.append("if (indexConflict != -1) \n");
-							src.append("parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + ", indexConflict), " + mKey +"); \n");
-							src.append("else \n");
+							src.append("if (indexConflict !=-1) \n");
+							src.append("index = indexConflict; \n");
 						}
 					}
-					src.append("parts = IOUtilFunctions.splitCSV(str.substring(" + currPos + "), " + mKey + "); \n");
-					src.append("for (int i=0; i< Math.min(parts.length, " + colIndexes.size() + "); i++) {\n");
-					if(!isMatrix) {
-						src.append("endPos = TemplateUtil.getEndPos(parts[i], parts[i].length(), 0, endWithValueString[" + colIndexName +"[i]]); \n");
-						src.append(destination).append(
-							"(row,"+colIndexName+"[i],UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" + colIndexName +
-								"[i]], parts[i].substring(0, endPos))); \n");
-					}
+					// #Case 3: key = multi and index = sequence
+					// #Case 4: key = multi and index = irregular
 					else
-						src.append(destination).append("(row," + colIndexName + "[i],UtilFunctions.parseToDouble(parts[i].substring(0, endPos), null)); \n");
-
-					src.append("} \n");
-					if(conflict != null) {
-						src.append("if (indexConflict !=-1) \n");
-						src.append("index = indexConflict; \n");
-					}
+						return null;
+					return cn;
 				}
-				// Case 3: key = multi and index = sequence
-				if(!isKeySingle && isIndexSequence) {
-					src.append("String ").append(cellString).append("; \n");
-					String baseIndex = colIndexes.get(0);
-					String keysName = getRandomName("keys");
-					StringBuilder srcKeys = new StringBuilder("new String[]{");
-					for(int i=1; i<keys.size(); i++) {
-						String mKey = refineKeyForSearch(keys.get(i));
-						srcKeys.append(mKey).append(",");
-					}
-
-					srcKeys.deleteCharAt(srcKeys.length() - 1);
-					srcKeys.append("}");
-					String colIndex = getRandomName("colIndex");
-					src.append("int ").append(colIndex).append("; \n");
-					String newStr = getRandomName("newStr");
-					src.append("String ").append(newStr).append("; \n");
-					String conflict = null;
-					if(!isMatrix) {
-						conflict = formatIdentifyer.getConflictToken(cols);
-						if(conflict != null) {
-							src.append("indexConflict = ").append("str.indexOf(" + refineKeyForSearch(conflict) + "," + currPos + "); \n");
-							src.append("if (indexConflict != -1) \n");
-							src.append(newStr).append("=").append("str.substring(" + currPos + ", indexConflict); \n");
-							src.append("else \n");
-						}
-					}
-					src.append(newStr).append("=").append("str.substring(" + currPos + "); \n");
-					src.append(currPos).append("=0; \n");
-
-					src.append("String[] ").append(keysName).append("=").append(srcKeys).append("; \n");
-
-					// get the last "if" value and set it into frame/matrix
-					src.append("endPos = TemplateUtil.getEndPos("+newStr +","+newStr+".length(), " + currPos + ", endWithValueString[" + baseIndex +"]); \n");
-					src.append(cellString + "="+newStr+".substring(" + currPos + ",endPos); \n");
-					if(!isMatrix) {
-						src.append(destination).append("(row," + baseIndex + " ,UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +	baseIndex + "], " + cellString + ")); \n");
-					}
-					else
-						src.append(destination).append(	"(row," + baseIndex + ",UtilFunctions.parseToDouble(" + cellString +", null)); \n");
-
-					// get remain cell values
-					baseIndex = colIndexes.get(1);
-					src.append("for (int i=0; i< ").append(keys.size()-1).append(";i++) { \n");
-					src.append("index = "+newStr+".indexOf(" + keysName + "[i],endPos); \n");
-					src.append("if (index == -1) break; \n");
-					src.append(currPos).append("=index+" + keysName + "[i].length(); \n");
-					src.append(colIndex).append(" = i+").append(baseIndex).append("; \n");
-					src.append("endPos = TemplateUtil.getEndPos("+newStr +", "+newStr+".length(), " + currPos + ", endWithValueString[" + colIndex +"]); \n");
-					src.append(cellString + "= "+newStr+".substring(" + currPos + ",endPos); \n");
-					if(!isMatrix) {
-						src.append(destination).append("(row," + colIndex + " ,UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" +	colIndex + "], " + cellString + ")); \n");
-					}
-					else
-						src.append(destination).append(	"(row," + colIndex + ",UtilFunctions.parseToDouble(" + cellString +", null)); \n");
-
-					src.append("} \n");
-					if(conflict != null) {
-						src.append("if (indexConflict !=-1) \n");
-						src.append("index = indexConflict; \n");
-					}
-				}
-				// #Case 4: key = multi and index = irregular
-				if(!isKeySingle && !isIndexSequence) {
-					src.append("String ").append(cellString).append("; \n");
-					String keysName = getRandomName("keys");
-					StringBuilder srcKeys = new StringBuilder("new String[]{");
-					for(int i=1; i<keys.size(); i++) {
-						String mKey = refineKeyForSearch(keys.get(i));
-						srcKeys.append(mKey).append(",");
-					}
-
-					srcKeys.deleteCharAt(srcKeys.length() - 1);
-					srcKeys.append("}");
-
-					StringBuilder srcColIndexes = new StringBuilder("new int[]{");
-					for(int i=1; i<colIndexes.size(); i++)
-						srcColIndexes.append(colIndexes.get(i)).append(",");
-					srcColIndexes.deleteCharAt(srcColIndexes.length() - 1);
-					srcColIndexes.append("}");
-					String newStr = getRandomName("newStr");
-					src.append("String ").append(newStr).append("; \n");
-					String conflict = null;
-					if(!isMatrix) {
-						conflict = formatIdentifyer.getConflictToken(cols);
-						if(conflict != null) {
-							src.append("indexConflict = ").append("str.indexOf(" + refineKeyForSearch(conflict) + "," + currPos + "); \n");
-							src.append("if (indexConflict != -1) \n");
-							src.append(newStr).append("=").append("str.substring(" + currPos + ", indexConflict); \n");
-							src.append("else \n");
-						}
-					}
-					src.append(newStr).append("=").append("str.substring(" + currPos + "); \n");
-					src.append(currPos).append("=0; \n");
-
-					String colIndexName = getRandomName("targetColIndex");
-					src.append("int[] ").append(colIndexName).append("=").append(srcColIndexes).append("; \n");
-
-					srcKeys.deleteCharAt(srcKeys.length() - 1);
-					srcKeys.append("}");
-					src.append("String[] ").append(keysName).append("=").append(srcKeys).append("; \n");
-
-					// get the last "if" value and set it into frame/matrix
-					src.append("endPos = TemplateUtil.getEndPos("+newStr +", "+newStr+".length(), "+ currPos + ", endWithValueString["+colIndexes.get(0)+"]); \n");
-					src.append(cellString + "= "+newStr+".substring(" + currPos + ",endPos); \n");
-					if(!isMatrix) {
-						src.append(destination).append("(row," + colIndexes.get(0) + ",UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" + colIndexes.get(0) + "], " + cellString + ")); \n");
-					}
-					else
-						src.append(destination).append("(row," + colIndexes.get(0) + ",UtilFunctions.parseToDouble(" + cellString + ", null)); \n");
-
-					// get remain cell values
-					src.append("for (int i=0; i< ").append(keys.size()-1).append(";i++) { \n");
-					src.append("index = "+newStr+".indexOf(" + keysName + "[i],endPos); \n");
-					src.append("if (index == -1) break; \n");
-					src.append(currPos).append("=index+" + keysName + "[i].length(); \n");
-					src.append("endPos = TemplateUtil.getEndPos("+newStr +", "+newStr+".length(), "+ currPos + ", endWithValueString[" + colIndexName + "[i]]); \n");
-					src.append(cellString + "= "+newStr+".substring(" + currPos + ",endPos); \n");
-					if(!isMatrix) {
-						src.append(destination).append("(row," + colIndexName + "[i] ,UtilFunctions.stringToObject(" + tmpDest + ".getSchema()[" + colIndexName + "[i]], " + cellString + ")); \n");
-					}
-					else
-						src.append(destination).append("(row," + colIndexName + "[i] ,UtilFunctions.parseToDouble(" + cellString + ", null)); \n");
-					src.append("} \n");
-
-					if(conflict != null) {
-						src.append("if (indexConflict !=-1) \n");
-						src.append("index = indexConflict; \n");
-					}
-				}
-				return cn;
 			}
 			else
 				return null;
@@ -495,7 +414,7 @@ public class CodeGenTrie {
 		return null;
 	}
 
-	private String refineKeyForSearch(String k){
+	private String refineKeyForSearch(String k) {
 		String mKey = k.replace("\\\"", Lop.OPERAND_DELIMITOR);
 		mKey = mKey.replace("\\", "\\\\");
 		mKey = mKey.replace(Lop.OPERAND_DELIMITOR, "\\\"");
