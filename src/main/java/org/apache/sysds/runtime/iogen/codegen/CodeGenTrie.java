@@ -336,6 +336,7 @@ public class CodeGenTrie {
 								src.append("index = indexConflict; \n");
 							}
 						}
+						return cn;
 					}
 					// #Case 2: key = single and index = irregular
 					if(isKeySingle && !isIndexSequence) {
@@ -393,12 +394,12 @@ public class CodeGenTrie {
 							src.append("if (indexConflict !=-1) \n");
 							src.append("index = indexConflict; \n");
 						}
+						return cn;
 					}
 					// #Case 3: key = multi and index = sequence
 					// #Case 4: key = multi and index = irregular
 					else
 						return null;
-					return cn;
 				}
 			}
 			else
