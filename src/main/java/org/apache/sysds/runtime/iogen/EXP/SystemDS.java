@@ -179,10 +179,10 @@ public class SystemDS {
 						Pair<int[], Integer> pair = getHL7Properties(System.getProperty("schemaMapFileName"));
 						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(pair.getKey(), pair.getValue());
 						schema = new Types.ValueType[pair.getValue()];
-						for(int i=0; i<pair.getValue(); i++)
+						for(int i=0; i<pair.getKey().length; i++)
 							schema[i] = Types.ValueType.STRING;
 						FrameReaderTextHL7 hl7 = new FrameReaderTextHL7(properties);
-						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, pair.getValue());
+						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, pair.getKey().length);
 						break;
 				}
 			}
@@ -247,10 +247,10 @@ public class SystemDS {
 						Pair<int[], Integer> pair = getHL7Properties(System.getProperty("schemaMapFileName"));
 						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(pair.getKey(), pair.getValue());
 						schema = new Types.ValueType[pair.getValue()];
-						for(int i=0; i<pair.getValue(); i++)
+						for(int i=0; i<pair.getKey().length; i++)
 							schema[i] = Types.ValueType.STRING;
 						FrameReaderTextHL7Parallel hl7 = new FrameReaderTextHL7Parallel(properties);
-						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, pair.getValue());
+						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, pair.getKey().length);
 						break;
 
 				}
