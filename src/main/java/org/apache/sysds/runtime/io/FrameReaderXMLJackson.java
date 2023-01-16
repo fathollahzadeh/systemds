@@ -219,7 +219,7 @@ public class FrameReaderXMLJackson {
 				str = sb.toString();
 				sb = new StringBuilder();
 			}
-			addRow(str, mapper, dest, schema, schemaMap, row);
+			addRow(str, mapper, dest, schema, schemaMap, row+rpos);
 			row++;
 		}
 		return row + rpos;
