@@ -178,7 +178,7 @@ public class SystemDS {
 					case "hl7":
 						Pair<int[], Integer> pair = getHL7Properties(System.getProperty("schemaMapFileName"));
 						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(pair.getKey(), pair.getValue());
-						schema = new Types.ValueType[pair.getValue()];
+						schema = new Types.ValueType[pair.getKey().length];
 						for(int i=0; i<pair.getKey().length; i++)
 							schema[i] = Types.ValueType.STRING;
 						FrameReaderTextHL7 hl7 = new FrameReaderTextHL7(properties);
@@ -246,7 +246,7 @@ public class SystemDS {
 					case "hl7":
 						Pair<int[], Integer> pair = getHL7Properties(System.getProperty("schemaMapFileName"));
 						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(pair.getKey(), pair.getValue());
-						schema = new Types.ValueType[pair.getValue()];
+						schema = new Types.ValueType[pair.getKey().length];
 						for(int i=0; i<pair.getKey().length; i++)
 							schema[i] = Types.ValueType.STRING;
 						FrameReaderTextHL7Parallel hl7 = new FrameReaderTextHL7Parallel(properties);
