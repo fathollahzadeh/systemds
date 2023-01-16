@@ -180,7 +180,6 @@ public class SystemDS {
 						cols = schema.length;
 						Pair<int[], Integer> pair = getHL7Properties(System.getProperty("schemaMapFileName"));
 						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(pair.getKey(), pair.getValue());
-
 						FrameReaderTextHL7 hl7 = new FrameReaderTextHL7(properties);
 						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, cols);
 						break;
@@ -245,11 +244,10 @@ public class SystemDS {
 
 					case "hl7":
 						schema = util.getSchema(schemaFileName);
-						cols = schema.length;
 						Pair<int[], Integer> parallelPair = getHL7Properties(System.getProperty("schemaMapFileName"));
 						FileFormatPropertiesHL7 properties = new FileFormatPropertiesHL7(parallelPair.getKey(), parallelPair.getValue());
 						FrameReaderTextHL7Parallel hl7 = new FrameReaderTextHL7Parallel(properties);
-						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, cols);
+						frameBlock = hl7.readFrameFromHDFS(dataFileName, schema, -1, parallelPair.getValue());
 						break;
 
 				}
@@ -274,7 +272,7 @@ public class SystemDS {
 			fileName.contains("F8") || fileName.contains("F9") || fileName.contains("F10")) {
 
 			int count = 0;
-			if(fileName.contains("F1")){
+			if(fileName.contains("F1") && !fileName.contains("F10")){
 				count = 10;
 
 			} else if(fileName.contains("F2")){
@@ -302,7 +300,7 @@ public class SystemDS {
 				count = 90;
 
 			}else if(fileName.contains("F10")){
-				count = 101;
+				count = 100;
 			}
 
 			selectedIndexes = new int[count];
