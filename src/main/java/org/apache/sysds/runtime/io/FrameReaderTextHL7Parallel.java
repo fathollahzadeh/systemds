@@ -125,6 +125,7 @@ public class FrameReaderTextHL7Parallel extends FrameReaderTextHL7 {
 			for(Future<Integer> rc : pool.invokeAll(tasks)) {
 				Integer nrows = rc.get();
 				_offsets.setOffsetPerSplit(i, _rLen);
+				_offsets.setLenghtPerSplit(i, _rLen+nrows);
 				_rLen += nrows;
 				i++;
 			}

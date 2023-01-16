@@ -113,6 +113,7 @@ public class FrameReaderTextHL7 extends FrameReader {
 				Integer nextOffset = splitIndex + 1 == splits.length ? null : splitIndex + 1;
 				Integer nrows = countRows(_offsets, splitIndex, nextOffset, split, informat, job, beginToken);
 				_offsets.setOffsetPerSplit(splitIndex, _rLen);
+				_offsets.setLenghtPerSplit(splitIndex,_rLen+ nrows);
 				_rLen += nrows;
 				splitIndex++;
 			}
@@ -207,7 +208,7 @@ public class FrameReaderTextHL7 extends FrameReader {
 		int row = _offsets.getOffsetPerSplit(splitCount);
 		TemplateUtil.SplitInfo splitInfo = _offsets.getSeqOffsetPerSplit(splitCount);
 
-		int rlen = splitInfo.getNrows();
+		int rlen = _offsets.getLenghtPerSplit(splitCount);
 		int ri;
 		int beginPosStr, endPosStr;
 		String remainStr = "";
