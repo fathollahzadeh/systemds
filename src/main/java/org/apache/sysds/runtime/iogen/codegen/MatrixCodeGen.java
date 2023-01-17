@@ -60,8 +60,8 @@ public class MatrixCodeGen extends TemplateCodeGenBase {
 	public String generateCodeJava(FormatIdentifyer formatIdentifyer) {
 
 		StringBuilder src = new StringBuilder();
-		//CodeGenTrie trie = new CodeGenTrie(properties, "dest.appendValue", true, formatIdentifyer);
-		CodeGenFlat flat = new CodeGenFlat(properties, "dest.appendValue", true, formatIdentifyer);
+		CodeGenTrie trie = new CodeGenTrie(properties, "dest.appendValue", true, formatIdentifyer);
+		//CodeGenFlat flat = new CodeGenFlat(properties, "dest.appendValue", true, formatIdentifyer);
 		src.append("String str=\"\"; \n");
 		src.append("String remainStr = \"\"; \n");
 		src.append("int col = -1; \n");
@@ -127,7 +127,7 @@ public class MatrixCodeGen extends TemplateCodeGenBase {
 			src.append("str = value.toString(); \n");
 		}
 		src.append("strLen = str.length(); \n");
-		src.append(flat.getJavaCode());
+		src.append(trie.getJavaCode());
 		src.append("} \n");
 		src.append("} \n");
 		src.append("catch(Exception ex){ \n");

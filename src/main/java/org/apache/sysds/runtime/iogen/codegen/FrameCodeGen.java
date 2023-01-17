@@ -56,9 +56,9 @@ public class FrameCodeGen extends TemplateCodeGenBase {
 	@Override
 	public String generateCodeJava(FormatIdentifyer formatIdentifyer) {
 		StringBuilder src = new StringBuilder();
-		//CodeGenTrie trie = new CodeGenTrie(properties, "dest.set", false, formatIdentifyer);
-		CodeGenFlat flat = new CodeGenFlat(properties, "dest.set", false, formatIdentifyer);
-		String javaCode = flat.getJavaCode();
+		CodeGenTrie trie = new CodeGenTrie(properties, "dest.set", false, formatIdentifyer);
+		//CodeGenFlat flat = new CodeGenFlat(properties, "dest.set", false, formatIdentifyer);
+		String javaCode = trie.getJavaCode();
 		src.append("String str=\"\"; \n");
 		src.append("String[] parts; \n");
 		src.append("String remainStr = \"\"; \n");
