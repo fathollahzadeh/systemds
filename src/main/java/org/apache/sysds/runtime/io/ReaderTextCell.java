@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import com.google.gson.Gson;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -71,8 +72,12 @@ public class ReaderTextCell extends MatrixReader
 		checkValidInputFile(fs, path); 
 		
 		//read matrix market header
-		if( _isMMFile )
+		if( _isMMFile ) {
+			System.out.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 			_mmProps = IOUtilFunctions.readAndParseMatrixMarketHeader(fname);
+		}
+		Gson gson = new Gson();
+		System.out.println(gson.toJson(_mmProps));
 		
 		//allocate output matrix block
 		if( estnnz < 0 )
