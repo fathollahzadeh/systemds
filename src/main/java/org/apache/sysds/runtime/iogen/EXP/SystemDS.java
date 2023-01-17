@@ -114,7 +114,7 @@ public class SystemDS {
 			}
 			if(matrixReader == null)
 				throw new IOException("The Matrix Reader is NULL: " + dataFileName + ", format: " + format);
-			matrixReader.readMatrixFromHDFS(dataFileName, rows, cols, -1, -1);
+			matrixReader.readMatrixFromHDFS(dataFileName, rows, cols, (int) rows, -1);
 		}
 		else {
 			FrameBlock frameBlock = null;
