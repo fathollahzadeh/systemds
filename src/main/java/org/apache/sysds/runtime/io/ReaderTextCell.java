@@ -78,6 +78,7 @@ public class ReaderTextCell extends MatrixReader
 		}
 		Gson gson = new Gson();
 		System.out.println(gson.toJson(_mmProps));
+		System.out.println("++++++++++++ "+ estnnz);
 		
 		//allocate output matrix block
 		if( estnnz < 0 )
