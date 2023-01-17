@@ -225,8 +225,10 @@ public class ReaderTextCellParallel extends ReaderTextCell
 				if( cell.getI() < 0 || cell.getI() + 1 > _rlen || cell.getJ() < 0 || cell.getJ() + 1 > _clen )
 					throw new RuntimeException("Matrix cell ["+(cell.getI()+1)+","+(cell.getJ()+1)+"] " +
 						"out of overall matrix range [1:"+_rlen+",1:"+_clen+"]. ", ex);
-				else
+				else {
+					ex.printStackTrace();
 					throw new RuntimeException("Unable to read matrix in text cell format. ", ex);
+				}
 			}
 			finally {
 				IOUtilFunctions.closeSilently(reader);
