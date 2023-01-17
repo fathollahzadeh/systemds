@@ -83,6 +83,8 @@ public class ReaderTextCell extends MatrixReader
 		if( estnnz < 0 )
 			estnnz = HDFSTool.estimateNnzBasedOnFileSize(path, rlen, clen, blen, 3);
 		MatrixBlock ret = createOutputMatrixBlock(rlen, clen, (int)rlen, estnnz, true, false);
+
+		System.out.println("rlen="+rlen+",  clen="+clen+", estnn="+estnnz+", blen="+blen);
 		
 		//core read 
 		if( fs.getFileStatus(path).isDirectory() || !_allowRawRead )
