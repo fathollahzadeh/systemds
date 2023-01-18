@@ -19,18 +19,12 @@
 
 package org.apache.sysds.test.functions.iogen;
 
-import com.google.gson.Gson;
 import org.apache.sysds.common.Types;
 import org.apache.sysds.runtime.frame.data.FrameBlock;
 import org.apache.sysds.runtime.io.FrameReader;
-import org.apache.sysds.runtime.iogen.CustomProperties;
 import org.apache.sysds.runtime.iogen.EXP.Util;
 import org.apache.sysds.runtime.iogen.GenerateReader;
 import org.junit.Test;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 
 public class GIO_AMiner extends HL7ReaderFrameTest {
 
@@ -43,7 +37,7 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 	@Test public void test1() throws Exception {
 
-		String[] projections = new String[]{"F1", "F2", "F3", "F4", "F5", "F6", "F7"};//{"Q1", "Q2", "Q3", "Q4"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
+		String[] projections = new String[]{"Q4"};//{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
 		Integer[] counts = new Integer[]{200}; //{200,300,400,500,600,700,800,900,1000};
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/aminer-author-json";
@@ -83,7 +77,7 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 	@Test public void test2() throws Exception {
 
-		String[] projections = new String[]{"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
+		String[] projections = new String[]{"Q4"};//{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
 		Integer[] counts = new Integer[]{200}; //{200,300,400,500,600,700,800,900,1000};
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/aminer-paper-json";
@@ -107,12 +101,12 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 				String sampleRaw = util.readEntireTextFile(sampleRawFileName);
 				GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame,
 					parallel);
-				FrameReader fr = gr.getReader();
+				FrameReader fr = gr.getReader(); //new GIOReader_10439746(gr.getProperties()); //
 				FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, sampleSchema, rows, sampleSchema.length);
 
-				for(int i=0; i< 5; i++) {
-					for(int j = 0; j < frameBlock.getNumColumns(); j++) {
-						System.out.print(frameBlock.get(i, j) + "[" + sampleFrame.get(i, j) + "], ");
+				for(int i=0; i< frameBlock.getNumRows(); i++) {
+					for(int j = 0; j <frameBlock.getNumColumns(); j++) {
+						System.out.print(frameBlock.get(i, j)+"["+sampleFrame.get(i,j) +"],  ");
 					}
 					System.out.println();
 				}
@@ -123,8 +117,7 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 	@Test public void test3() throws Exception {
 
-		String[] projections = new String[]{"F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10",
-			"F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
+		String[] projections = new String[]{"F20"};//{"Q1", "Q2", "Q3", "Q4","F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20"}; //{"Q1","Q2","Q3","Q4","Q5"};// {"F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
 		Integer[] counts = new Integer[]{200}; //{200,300,400,500,600,700,800,900,1000};
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/yelp-json";
@@ -156,13 +149,14 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 					}
 					System.out.println();
 				}
+				System.out.println("********************************************************************");
 			}
 		}
 	}
 
 	@Test public void test4() throws Exception {
 
-		String[] projections = new String[]{"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
+		String[] projections = new String[] {"F9"};//{"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
 		Integer[] counts = new Integer[]{200};//{200,300,400,500,600,700,800,900,1000};
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/yelp-csv";
@@ -202,7 +196,7 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 	@Test public void test5() throws Exception {
 
-		String[] projections = new String[]{"F1", "F2", "F3", "F4", "F5", "F6", "F7"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
+		String[] projections = new String[]{"Q4"}; //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
 		Integer[] counts = new Integer[]{200};//{200,300,400,500,600,700,800,900,1000};
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/aminer-author";
@@ -242,7 +236,7 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 	@Test public void test6() throws Exception {
 
-		String[] projections = new String[]{"Q1", "Q2", "Q3", "Q4"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10"};
+		String[] projections = new String[]{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10"};
 		Integer[] counts = new Integer[]{200};//{200,300,400,500,600,700,800,900,1000};
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/aminer-paper";
@@ -274,7 +268,7 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 					}
 					System.out.println();
 				}
-				System.out.println(c+"++++++++++++++++++++++++++++++++++++");
+				System.out.println(c+"++++++++++++++++++++++++++++++++++++"+p);
 			}
 		}
 	}
@@ -302,7 +296,7 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 				String sampleRaw = util.readEntireTextFile(sampleRawFileName);
 				GenerateReader.GenerateReaderFrame gr = new GenerateReader.GenerateReaderFrame(sampleRaw, sampleFrame,
 					parallel);
-				FrameReader fr = gr.getReader();
+				FrameReader fr = gr.getReader(); //new GIOReader_7653523(gr.getProperties());//gr.getReader();
 				FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, sampleSchema, rows, sampleSchema.length);
 
 				for(int i=0; i< frameBlock.getNumRows(); i++) {
@@ -320,7 +314,7 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/aminer-paper";
 		String sampleRawDelimiter="\t";
-		boolean parallel=false;
+		boolean parallel=true;
 		long rows = -1;
 		Util util = new Util();
 
@@ -341,8 +335,9 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 			FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, sampleSchema, rows, sampleSchema.length);
 
 			for(int i=0; i< frameBlock.getNumRows(); i++) {
+				System.out.print(i+" || ");
 				for(int j = 0; j < frameBlock.getNumColumns(); j++) {
-					System.out.print(frameBlock.get(i, j) + "[" + sampleFrame.get(i, j) + "], ");
+					System.out.print(frameBlock.get(i, j) + ", ");
 				}
 				System.out.println();
 			}
@@ -352,7 +347,7 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 	@Test public void test9() throws Exception {
 
-		String[] projections = new String[] {"F10"}; //{"F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10"};
+		String[] projections = new String[] {"F7"}; //{"F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10"};
 		Integer[] counts = new Integer[]{200} ;//{200,300,400,500,600,700,800,900,1000};
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/ReWasteF-csv";
@@ -396,7 +391,7 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/autolead-xml";
 		String sampleRawDelimiter="\t";
-		boolean parallel=false;
+		boolean parallel=true;
 		long rows = -1;
 		Util util = new Util();
 
@@ -416,26 +411,16 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 			FrameReader fr = gr.getReader();
 			FrameBlock frameBlock = fr.readFrameFromHDFS(dataFileName, sampleSchema, rows, sampleSchema.length);
 
-			for(int i=0; i< 10; i++) {
+			// [120]null[Wanda Wright],  [128]null[+1 582-333-1499],  [145]null[US],
+
+			for(int i=0; i< frameBlock.getNumRows(); i++) {
+				System.out.println(i+" >> ");
 				for(int j = 0; j < frameBlock.getNumColumns(); j++) {
-					System.out.print(frameBlock.get(i, j) + "[" + sampleFrame.get(i, j) + "], ");
+					//if(frameBlock.get(i, j) == null)
+						System.out.print(frameBlock.get(i, j) + ", ");
 				}
 				System.out.println();
 			}
-		}
-	}
-
-	@Test public void test11() throws Exception {
-
-		int blklen = (int)Math.ceil((double)1015 / (16*16));
-		for(int i=0; i<16; i++) {
-			System.out.print(i+" >> ");
-			for(int j=0; j<16 && j*16*blklen+(i)*blklen < 1015; j++){
-				int begin = j*16*blklen+i*blklen;//j*blklen+i*16;
-				int end = (int)Math.min(j*16*blklen+(i+1)*blklen, 1015);
-				System.out.print("["+begin+","+end+"] , ");
-			}
-			System.out.println();
 		}
 	}
 }
