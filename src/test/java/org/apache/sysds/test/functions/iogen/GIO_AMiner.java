@@ -37,8 +37,8 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 	@Test public void test1() throws Exception {
 
-		String[] projections = new String[]{"Q4"};//{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
-		Integer[] counts = new Integer[]{200}; //{200,300,400,500,600,700,800,900,1000};
+		String[] projections = new String[]{"Q1", "Q2", "Q3", "Q4"};//{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
+		Integer[] counts = new Integer[]{1000,2000,3000,4000,5000,6000,7000,8000,9000,10000};
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/aminer-author-json";
 		String sampleRawDelimiter="\t";
@@ -117,8 +117,8 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 	@Test public void test3() throws Exception {
 
-		String[] projections = new String[]{"F20"};//{"Q1", "Q2", "Q3", "Q4","F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20"}; //{"Q1","Q2","Q3","Q4","Q5"};// {"F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
-		Integer[] counts = new Integer[]{200}; //{200,300,400,500,600,700,800,900,1000};
+		String[] projections = new String[]{"Q1", "Q2", "Q3", "Q4","Q5"};//{"Q1", "Q2", "Q3", "Q4","F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20"}; //{"Q1","Q2","Q3","Q4","Q5"};// {"F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
+		Integer[] counts = new Integer[]{1000,2000,3000,4000,5000,6000,7000,8000,9000,10000};
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/yelp-json";
 		String sampleRawDelimiter="\t";
@@ -156,8 +156,8 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 	@Test public void test4() throws Exception {
 
-		String[] projections = new String[] {"F9"};//{"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
-		Integer[] counts = new Integer[]{200};//{200,300,400,500,600,700,800,900,1000};
+		String[] projections = new String[] {"Q1", "Q2"};//{"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9"};  //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
+		Integer[] counts = new Integer[]{1000,2000,3000,4000,5000,6000,7000,8000,9000,10000};
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/yelp-csv";
 		String sampleRawDelimiter="\t";
@@ -196,8 +196,8 @@ public class GIO_AMiner extends HL7ReaderFrameTest {
 
 	@Test public void test5() throws Exception {
 
-		String[] projections = new String[]{"Q4"}; //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
-		Integer[] counts = new Integer[]{200};//{200,300,400,500,600,700,800,900,1000};
+		String[] projections = new String[]{"Q1", "Q2", "Q3", "Q4"}; //{"Q1", "Q2", "Q3", "Q4", "F1", "F2", "F3", "F4", "F5", "F6", "F7"};
+		Integer[] counts = new Integer[]{1000,2000,3000,4000,5000,6000,7000,8000,9000,10000};
 
 		String rootPath="/home/saeed/Documents/tmp/Examples/aminer-author";
 		String sampleRawDelimiter="\t";
