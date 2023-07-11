@@ -119,6 +119,9 @@ public class DataExpression extends DataIdentifier
 	public static final String HDF5_DATASET_NAME = "dataset";
 	
 	public static final String DELIM_SPARSE = "sparse";  // applicable only for write
+
+	public static final String SAMPLE_RAW = "sample_raw"; // sample raw for genIO
+	public static final String SAMPLE = "sample"; // sample matrix/frame for genIO
 	
 	public static final Set<String> RAND_VALID_PARAM_NAMES = new HashSet<>(
 		Arrays.asList(RAND_ROWS, RAND_COLS, RAND_DIMS,
@@ -228,6 +231,8 @@ public class DataExpression extends DataIdentifier
 			dataExpr = processSQLExpression(functionName, passedParamExprs, errorListener, parseInfo);
 		else if (functionName.equals("federated"))
 			dataExpr = processFederatedExpression(functionName, passedParamExprs, errorListener, parseInfo);
+		else if(functionName.toLowerCase().equals("genio"))
+			dataExpr = processGenIODataExpression(functionName, passedParamExprs, errorListener, parseInfo);
 		
 		if (dataExpr != null)
 			dataExpr.setParseInfo(parseInfo);
@@ -577,6 +582,23 @@ public class DataExpression extends DataIdentifier
 		dataExpr.setFederatedDefault();
 		return dataExpr;
 	}
+
+	private static DataExpression processGenIODataExpression(String functionName,
+		List<ParameterExpression> passedParamExprs, CustomErrorListener errorListener, ParseInfo parseInfo)
+	{
+		DataExpression dataExpr = new DataExpression(DataOp.GENIO, new HashMap<>(), parseInfo);
+		ParameterExpression pexpr = (passedParamExprs.size() == 0) ? null : passedParamExprs.get(0);
+		if(pexpr == null || passedParamExprs.size() != 2){
+			errorListener.validationError(parseInfo, "genIO required two sample raw and sample matrix/frame parameters!");
+			return null;
+		}
+		Expression exprSampleRaw = passedParamExprs.get(0).getExpr();
+		Expression exprSample = passedParamExprs.get(1).getExpr();
+
+		dataExpr.addVarParam(SAMPLE_RAW, exprSampleRaw);
+		dataExpr.addVarParam(SAMPLE, exprSample);
+		return dataExpr;
+	}
 	
 	public void addRandExprParam(String paramName, Expression paramValue)
 	{
@@ -913,7 +935,8 @@ public class DataExpression extends DataIdentifier
 			}
 			inputParamExpr.validateExpression(ids, currConstVars, conditional);
 			if (s != null && !s.equals(RAND_DATA) && !s.equals(RAND_DIMS) && !s.equals(FED_ADDRESSES) && !s.equals(FED_RANGES) && !s.equals(FED_LOCAL_OBJECT)
-					&& !s.equals(DELIM_NA_STRINGS) && !s.equals(SCHEMAPARAM) && getVarParam(s).getOutput().getDataType() != DataType.SCALAR ) {
+					&& !s.equals(DELIM_NA_STRINGS) && !s.equals(SCHEMAPARAM) && getVarParam(s).getOutput().getDataType() != DataType.SCALAR
+					&& !s.equals(SAMPLE)) {
 				raiseValidateError("Non-scalar data types are not supported for data expression.", conditional,LanguageErrorCodes.INVALID_PARAMETERS);
 			}
 		}
@@ -2157,6 +2180,10 @@ public class DataExpression extends DataIdentifier
 			}
 			getOutput().setDimensions(-1, -1);
 
+			break;
+		case GENIO:
+			getOutput().setDataType(DataType.SCALAR);
+			getOutput().setValueType(ValueType.STRING);
 			break;
 			
 		default:

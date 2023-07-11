@@ -104,6 +104,7 @@ public class VariableCPInstruction extends CPInstruction implements LineageTrace
 		CastAsBooleanVariable,
 		Write,
 		Read,
+		GenIO,
 		SetFileName;
 
 		public boolean isCast() {
@@ -228,6 +229,9 @@ public class VariableCPInstruction extends CPInstruction implements LineageTrace
 
 		else if ( str.equalsIgnoreCase("read") )
 			return VariableOperationCode.Read;
+
+		else if ( str.equalsIgnoreCase("genio") )
+			return VariableOperationCode.GenIO;
 
 		else if ( str.equalsIgnoreCase("setfilename") )
 			return VariableOperationCode.SetFileName;

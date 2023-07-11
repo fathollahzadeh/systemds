@@ -83,6 +83,10 @@ public class Data extends Lop
 		else if(name != null) {
 			if ( _op.isTransient() )
 				getOutputParameters().setLabel(name); // tvar+name
+
+			else if(_op.isGenIO())
+				getOutputParameters().setLabel("pGIO"+name);
+
 			else {
 				String code = _op == OpOpData.FUNCTIONOUTPUT ? "" :
 					_op.isRead() ? "pREAD" : "pWRITE";
@@ -265,6 +269,13 @@ public class Data extends Lop
 			sb.append( "write" );
 			sb.append( OPERAND_DELIMITOR );
 			sb.append ( getInputs().get(0).prepInputOperand(input1) );
+		}
+		else if (_op.isGenIO()) {
+			sb.append( "genio" );
+			sb.append( OPERAND_DELIMITOR );
+			sb.append ( this.prepInputOperand(input1) );
+			sb.append( OPERAND_DELIMITOR );
+			sb.append ( this.prepInputOperand(input2) );
 		}
 		else
 			throw new LopsException(this.printErrorLocation() + "In Data Lop, Unknown operation: " + _op);

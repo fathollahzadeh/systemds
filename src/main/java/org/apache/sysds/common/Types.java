@@ -592,7 +592,8 @@ public class Types
 		PERSISTENTREAD, PERSISTENTWRITE, 
 		TRANSIENTREAD, TRANSIENTWRITE,
 		FUNCTIONOUTPUT, 
-		SQLREAD, FEDERATED;
+		SQLREAD, FEDERATED,
+		GENIO;
 		
 		public boolean isTransient() {
 			return this == TRANSIENTREAD || this == TRANSIENTWRITE;
@@ -606,6 +607,7 @@ public class Types
 		public boolean isRead() {
 			return this == TRANSIENTREAD || this == PERSISTENTREAD;
 		}
+		public boolean isGenIO() {return  this == GENIO;}
 		
 		@Override
 		public String toString() {
@@ -617,6 +619,7 @@ public class Types
 				case FUNCTIONOUTPUT:  return "FunOut";
 				case SQLREAD:         return "Sql";
 				case FEDERATED:       return "Fed";
+				case GENIO:			  return "GIO";
 				default:              return "Invalid";
 			}
 		}
@@ -632,7 +635,8 @@ public class Types
 		BINARY, // binary block representation (dense/sparse/ultra-sparse)
 		FEDERATED, // A federated matrix
 		PROTO,  // protocol buffer representation
-		HDF5; // Hierarchical Data Format (HDF)
+		HDF5, // Hierarchical Data Format (HDF)
+		RAW; // Raw format representation e.g., Java source code, raw text without any formats
 		
 		public boolean isIJV() {
 			return this == TEXT || this == MM;

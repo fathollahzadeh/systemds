@@ -262,6 +262,7 @@ public class CPInstructionParser extends InstructionParser {
 		String2CPInstructionType.put( "attachfiletovar"  , CPType.Variable);
 		String2CPInstructionType.put( "read"        , CPType.Variable);
 		String2CPInstructionType.put( "write"       , CPType.Variable);
+		String2CPInstructionType.put( "genio"       , CPType.Variable);
 		String2CPInstructionType.put( "createvar"   , CPType.Variable);
 
 		// Reorg Instruction Opcodes (repositioning of existing values)

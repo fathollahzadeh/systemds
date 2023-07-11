@@ -320,6 +320,12 @@ public class DataOp extends Hop {
 			case FEDERATED:
 				l = new Federated(inputLops, getDataType(), getValueType());
 				break;
+
+			case GENIO:
+				l = new Data(_op, getInput().get(0).constructLops(), inputLops, getName(), null,
+					getDataType(), getValueType(), getFileFormat());
+				((Data)l).setExecType(et);
+				break;
 			
 			default:
 				throw new LopsException("Invalid operation type for Data LOP: " + _op);
@@ -505,7 +511,7 @@ public class DataOp extends Hop {
 
 	@Override
 	public void refreshSizeInformation() {
-		if( _op == OpOpData.PERSISTENTWRITE || _op == OpOpData.TRANSIENTWRITE ) {
+		if( _op == OpOpData.PERSISTENTWRITE || _op == OpOpData.TRANSIENTWRITE || _op == OpOpData.GENIO) {
 			Hop input1 = getInput().get(0);
 			setDim1(input1.getDim1());
 			setDim2(input1.getDim2());

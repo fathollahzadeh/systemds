@@ -49,7 +49,7 @@ public class DmlParser extends Parser {
 		COMMANDLINE_POSITION_ID=66, STRING=67, LINE_COMMENT=68, MULTILINE_BLOCK_COMMENT=69, 
 		WHITESPACE=70;
 	public static final int
-		RULE_programroot = 0, RULE_statement = 1, RULE_iterablePredicate = 2, 
+		RULE_programroot = 0, RULE_statement = 2, RULE_iterablePredicate = 2,
 		RULE_functionStatement = 3, RULE_dataIdentifier = 4, RULE_expression = 5, 
 		RULE_typedArgNoAssign = 6, RULE_typedArgAssign = 7, RULE_parameterizedExpression = 8, 
 		RULE_strictParameterizedExpression = 9, RULE_strictParameterizedKeyValueString = 10, 

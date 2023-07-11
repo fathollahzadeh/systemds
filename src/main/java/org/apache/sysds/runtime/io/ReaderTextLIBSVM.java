@@ -127,19 +127,37 @@ public class ReaderTextLIBSVM extends MatrixReader {
 		throws IOException
 	{
 		SparseRowVector vect = new SparseRowVector(1024);
-		String value = null;
 		int row = rowPos.intValue();
 		long lnnz = 0;
 
 		// Read the data
-		try( BufferedReader br = new BufferedReader(new InputStreamReader(is)) ) {
-			while( (value=br.readLine())!=null ) { //for each line
-				String rowStr = value.toString().trim();
-				lnnz += ReaderTextLIBSVM.parseLibsvmRow(rowStr, vect, 
-						(int) clen, _props.getDelim(), _props.getIndexDelim());
-				dest.appendRow(row, vect);
-				row++;
+		BufferedReader br = new BufferedReader(new InputStreamReader(is));
+		String value = br.readLine();
+		String[] parts = value.split(_props.getDelim());
+		boolean firstValIsLabel = true;
+		try { Double.parseDouble(parts[0]);	}
+		catch(Exception ex){ firstValIsLabel = false; }
+
+		try {
+			if(firstValIsLabel) {
+				do { //for each line
+					String rowStr = value.toString().trim();
+					lnnz += ReaderTextLIBSVM.parseLibsvmRow(rowStr, vect, (int) clen, _props.getDelim(), _props.getIndexDelim());
+					dest.appendRow(row, vect);
+					row++;
+				}while((value = br.readLine()) != null);
 			}
+			else {
+				do { //for each line
+					String rowStr = value.toString().trim();
+					lnnz += ReaderTextLIBSVM.parseLibsvmRowWithoutLabel(rowStr, vect, (int) clen, _props.getDelim(), _props.getIndexDelim());
+					dest.appendRow(row, vect);
+					row++;
+				}while((value = br.readLine()) != null);
+			}
+		}
+		catch(Exception exception){
+
 		}
 
 		rowPos.setValue(row);
@@ -177,6 +195,23 @@ public class ReaderTextLIBSVM extends MatrixReader {
 			vect.append(Integer.parseInt(pair[0])-1, Double.parseDouble(pair[1]));
 		}
 		vect.append(clen-1, label);
+		return vect.size();
+	}
+
+	protected static int parseLibsvmRowWithoutLabel(String rowStr, SparseRowVector vect, int clen, String delim,
+		String indexDelim) {
+		// reset row buffer (but keep allocated arrays)
+		vect.setSize(0);
+
+		//parse row w/ first entry being the label
+		String[] parts = rowStr.split(delim);
+
+		//parse entire row
+		for( int i=0; i<parts.length; i++ ) {
+			//parse non-zero: <index#>:<value#>
+			String[] pair = parts[i].split(indexDelim);
+			vect.append(Integer.parseInt(pair[0]), Double.parseDouble(pair[1]));
+		}
 		return vect.size();
 	}
 }

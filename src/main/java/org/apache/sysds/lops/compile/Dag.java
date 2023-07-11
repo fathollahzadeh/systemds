@@ -376,6 +376,23 @@ public class Dag<N extends Lop>
 					}
 				}
 			}
+
+			// if DataOp is GENIO:
+			if (n.isDataExecLocation() && ((Data) n).getOperationType().isGenIO())
+			{
+				if ( !((Data)n).isLiteral() ) {
+					try {
+						String input1 =  n.getInputs().get(0).getOutputParameters().getLabel();
+						String input2 =  n.getInputs().get(1).getOutputParameters().getLabel();
+						String inst_string = n.getInstructions(input1, input2);
+						CPInstruction currInstr = CPInstructionParser.parseSingleInstruction(inst_string);
+						currInstr.setLocation(n);
+						insts.add(currInstr);
+					} catch (DMLRuntimeException e) {
+						throw new LopsException(n.printErrorLocation() + "error generating instructions from input variables in Dag -- \n", e);
+					}
+				}
+			}
 		}
 		return insts;
 	}

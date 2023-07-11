@@ -1564,7 +1564,8 @@ public class DMLTranslator
 			else if( source instanceof DataExpression ) {
 				Hop ae = processDataExpression((DataExpression)source, target, hops);
 				if (ae instanceof DataOp && ((DataOp) ae).getOp() != OpOpData.SQLREAD &&
-						((DataOp) ae).getOp() != OpOpData.FEDERATED) {
+						((DataOp) ae).getOp() != OpOpData.FEDERATED &&
+						((DataOp) ae).getOp() != OpOpData.GENIO) {
 					String formatName = ((DataExpression)source).getVarParam(DataExpression.FORMAT_TYPE).toString();
 					((DataOp)ae).setFileFormat(Expression.convertFormatType(formatName));
 				}
@@ -2187,6 +2188,11 @@ public class DMLTranslator
 		case FEDERATED:
 			currBuiltinOp = new DataOp(target.getName(), target.getDataType(),
 					target.getValueType(), OpOpData.FEDERATED, paramHops);
+			break;
+
+		case GENIO:
+			currBuiltinOp = new DataOp(target.getName(), target.getDataType(),
+				target.getValueType(), OpOpData.GENIO, paramHops);
 			break;
 
 		default:
