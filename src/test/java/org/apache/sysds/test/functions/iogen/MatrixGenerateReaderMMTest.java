@@ -43,4 +43,20 @@ public class MatrixGenerateReaderMMTest extends GenerateReaderMatrixTest {
 			}
 		}
 	}
+
+	@Test
+	public void test2() {
+		String HOME = SCRIPT_DIR + TEST_DIR + "in/MM/mm-col";
+		String sampleRaw = HOME + "/sample-mm-col100.raw";
+		String sampleFrame = HOME + "/sample-mm-col100.matrix";
+		runGenerateReaderTest(sampleRaw, sampleFrame, true);
+	}
+
+	@Test
+	public void test3() {
+		String HOME = SCRIPT_DIR + TEST_DIR + "in/MM/mm-row";
+		String sampleRaw = HOME + "/sample-mm-row200.raw";
+		String sampleFrame = HOME + "/sample-mm-row200.matrix";
+		runGenerateReaderTest(sampleRaw, sampleFrame, true);
+	}
 }
